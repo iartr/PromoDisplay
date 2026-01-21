@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.tracer)
 }
+
+val tracerProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.isFile) {
+        propertiesFile.inputStream().use { load(it) }
+    }
+}
+val tracerPluginToken = tracerProperties.getProperty("tracer.pluginToken") ?: System.getenv("TRACER_PLUGIN_TOKEN")
+val tracerAppToken = tracerProperties.getProperty("tracer.appToken") ?: System.getenv("TRACER_APP_TOKEN")
+val hasTracerTokens = !tracerPluginToken.isNullOrBlank() && !tracerAppToken.isNullOrBlank()
 
 android {
     namespace = "ru.offerfactory.promodisplay"
@@ -43,6 +56,17 @@ kotlin {
     }
 }
 
+tracer {
+    create("defaultConfig") {
+        pluginToken = tracerPluginToken.orEmpty()
+        appToken = tracerAppToken.orEmpty()
+
+        uploadMapping = hasTracerTokens
+        uploadNativeSymbols = hasTracerTokens
+        uploadRetryCount = 2
+    }
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -65,6 +89,15 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
+
+    implementation(platform(libs.tracer.platform))
+    implementation(libs.tracer.crash.report)
+    implementation(libs.tracer.crash.report.native)
+    implementation(libs.tracer.heap.dumps)
+    implementation(libs.tracer.disk.usage)
+    implementation(libs.tracer.profiler.sampling)
+    implementation(libs.tracer.profiler.systrace)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

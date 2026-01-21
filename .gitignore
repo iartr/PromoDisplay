@@ -3,6 +3,8 @@
 /local.properties
 /.idea/
 /.idea
+/.codex/
+/.codex
 .DS_Store
 /build
 /captures
