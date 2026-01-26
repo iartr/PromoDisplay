@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PromoDisplay"
 include(":app")
- 
+include(":logger")
