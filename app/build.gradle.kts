@@ -68,6 +68,7 @@ tracer {
 }
 
 dependencies {
+    implementation(project(":auto-boot"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
