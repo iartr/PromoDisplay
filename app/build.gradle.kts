@@ -68,6 +68,8 @@ tracer {
 }
 
 dependencies {
+    implementation(projects.network)
+    implementation(projects.syncer)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

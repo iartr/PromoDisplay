@@ -19,6 +19,9 @@ dependencyResolutionManagement {
     }
 }
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 rootProject.name = "PromoDisplay"
 include(":app")
- 
+include(":network")
+include(":syncer")
