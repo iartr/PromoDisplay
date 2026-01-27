@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.network"
+    namespace = "ru.offerfactory.promodisplay.network"
     compileSdk = 36
 
     defaultConfig {

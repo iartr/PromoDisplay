@@ -51,4 +51,3 @@ fun includeModule(
     include(moduleName)
     project(moduleName).projectDir = File(modulePath)
 }
-include(":network")
