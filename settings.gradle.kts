@@ -24,7 +24,7 @@ val coreDir = "core"
 val featureDir = "feature"
 
 include(":app")
-addFeatureApiImplModule("syncer")
+addCoreModule("network")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
