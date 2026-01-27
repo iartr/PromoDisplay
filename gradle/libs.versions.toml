@@ -16,6 +16,9 @@ room = "2.8.4"
 workManager = "2.11.0"
 ksp = "2.0.21-1.0.25"
 tracer = "1.1.7"
+appcompat = "1.6.1"
+material = "1.10.0"
+datastore = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,6 +54,9 @@ tracer-heap-dumps = { group = "ru.ok.tracer", name = "tracer-heap-dumps" }
 tracer-disk-usage = { group = "ru.ok.tracer", name = "tracer-disk-usage" }
 tracer-profiler-sampling = { group = "ru.ok.tracer", name = "tracer-profiler-sampling" }
 tracer-profiler-systrace = { group = "ru.ok.tracer", name = "tracer-profiler-systrace" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -58,3 +64,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 tracer = { id = "ru.ok.tracer", version.ref = "tracer" }
+android-library = { id = "com.android.library", version.ref = "agp" }
