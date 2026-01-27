@@ -51,5 +51,3 @@ fun includeModule(
     include(moduleName)
     project(moduleName).projectDir = File(modulePath)
 }
-include(":syncer-api")
-include(":syncer-impl")

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.syncer_impl"
+    namespace = "ru.offerfactory.promodisplay.syncer.impl"
     compileSdk = 36
 
     defaultConfig {
