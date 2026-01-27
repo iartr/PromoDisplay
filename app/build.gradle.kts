@@ -69,6 +69,9 @@ tracer {
 
 dependencies {
 
+    implementation(project(":feature:ad-source-api"))
+    implementation(project(":feature:ad-source-impl"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

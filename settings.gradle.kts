@@ -28,6 +28,7 @@ include(":app")
 // TODO Пример модулей, выпилить из кодовой базы
 addCoreModule("somecore")
 addFeatureApiImplModule("auto-boot-sample")
+
 addFeatureApiImplModule("ad-source")
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
