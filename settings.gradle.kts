@@ -24,8 +24,11 @@ val coreDir = "core"
 val featureDir = "feature"
 
 include(":app")
+
+addCoreModule("navigation")
 addCoreModule("network")
 addCoreModule("logger")
+addFeatureApiImplModule("auto-boot")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
