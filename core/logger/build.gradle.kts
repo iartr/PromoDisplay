@@ -3,9 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
-
 android {
-    namespace = "ru.offerfactory.promodisplay"
+    namespace = "ru.offerfactory.promodisplay.logger"
     compileSdk = 36
 
     defaultConfig {
@@ -33,18 +32,12 @@ android {
     }
 }
 
-
-
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-
-    // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
-
-    // Timber
-    implementation(libs.timber)
+    androidTestImplementation(libs.androidx.espresso.core)
 }
