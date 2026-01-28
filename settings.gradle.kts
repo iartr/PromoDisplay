@@ -28,9 +28,11 @@ include(":app")
 addCoreModule("somecore")
 addCoreModule("navigation")
 addCoreModule("network")
+addCoreModule("logger")
+addCoreModule("analytics")
+addFeatureApiImplModule("auto-boot")
 addFeatureApiImplModule("auto-boot-sample")
 addFeatureApiImplModule("ad-source")
-addFeatureApiImplModule("auto-boot")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
