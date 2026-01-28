@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.remote_config"
+    namespace = "ru.offerfactory.promodisplay.remote_config"
     compileSdk = 36
 
     defaultConfig {
