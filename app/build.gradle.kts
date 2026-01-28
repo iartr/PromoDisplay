@@ -68,6 +68,8 @@ tracer {
 }
 
 dependencies {
+    implementation(project(":feature:player-api"))
+    implementation(project(":feature:player-impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
