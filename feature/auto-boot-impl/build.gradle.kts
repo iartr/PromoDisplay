@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.offerfactory.promodisplay"
+    namespace = "ru.offerfactory.promodisplay.auto_boot_impl"
     compileSdk = 36
 
     defaultConfig {
@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":feature:auto-boot-api"))
 
     implementation(libs.androidx.core.ktx)
 
@@ -41,4 +42,7 @@ dependencies {
 
     // workManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // coroutines
+    implementation(libs.kotlinx.coroutines.core)
 }
