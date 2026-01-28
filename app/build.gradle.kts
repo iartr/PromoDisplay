@@ -76,8 +76,10 @@ dependencies {
     implementation(project(":core:analytics"))
     implementation(project(":feature:auto-boot-api"))
     implementation(project(":feature:auto-boot-impl"))
-
+    implementation(project(":feature:ad-source-api"))
+    implementation(project(":feature:ad-source-impl"))
     implementation(project(":core:remote-config"))
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
