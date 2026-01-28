@@ -25,8 +25,7 @@ val featureDir = "feature"
 
 include(":app")
 
-// TODO Пример модулей, выпилить из кодовой базы
-addCoreModule("somecore")
+addCoreModule("ui")
 addFeatureApiImplModule("auto-boot-sample")
 
 fun addCoreModule(moduleName: String) {
@@ -54,3 +53,4 @@ fun includeModule(
     include(moduleName)
     project(moduleName).projectDir = File(modulePath)
 }
+include(":core:ui")
