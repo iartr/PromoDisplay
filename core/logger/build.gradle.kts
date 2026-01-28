@@ -3,9 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
-
 android {
-    namespace = "ru.offerfactory.promodisplay"
+    namespace = "ru.offerfactory.promodisplay.logger"
     compileSdk = 36
 
     defaultConfig {
@@ -32,8 +31,6 @@ android {
         jvmTarget = "11"
     }
 }
-
-
 
 dependencies {
 
