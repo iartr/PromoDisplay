@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.offerfactory.features.ad_source.impl"
+    namespace = "ru.offerfactory.promodisplay.ad.source.impl"
     compileSdk = 36
 
     defaultConfig {
