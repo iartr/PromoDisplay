@@ -28,6 +28,7 @@ include(":app")
 addCoreModule("navigation")
 addCoreModule("network")
 addCoreModule("logger")
+addCoreModule("analytics")
 addFeatureApiImplModule("auto-boot")
 
 fun addCoreModule(moduleName: String) {
