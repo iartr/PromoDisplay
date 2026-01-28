@@ -25,10 +25,17 @@ val featureDir = "feature"
 
 include(":app")
 
+
 // TODO Пример модулей, выпилить из кодовой базы
 addCoreModule("somecore")
 addCoreModule("remote-config")
+addCoreModule("navigation")
+addCoreModule("network")
+addCoreModule("logger")
+addCoreModule("analytics")
+addFeatureApiImplModule("auto-boot")
 addFeatureApiImplModule("auto-boot-sample")
+
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
