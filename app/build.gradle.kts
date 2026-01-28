@@ -70,6 +70,7 @@ tracer {
 dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":core:network"))
+    implementation(project(":core:analytics"))
 
     implementation(project(":feature:auto-boot-api"))
     implementation(project(":feature:auto-boot-impl"))
