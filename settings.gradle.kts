@@ -24,6 +24,8 @@ val coreDir = "core"
 val featureDir = "feature"
 
 include(":app")
+
+addCoreModule("navigation")
 addCoreModule("network")
 
 fun addCoreModule(moduleName: String) {
