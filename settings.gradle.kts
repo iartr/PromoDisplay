@@ -25,6 +25,7 @@ val featureDir = "feature"
 
 include(":app")
 addCoreModule("network")
+addCoreModule("analytics")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
@@ -51,3 +52,4 @@ fun includeModule(
     include(moduleName)
     project(moduleName).projectDir = File(modulePath)
 }
+include(":analytics")

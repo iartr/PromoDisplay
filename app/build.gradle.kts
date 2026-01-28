@@ -69,6 +69,7 @@ tracer {
 
 dependencies {
     implementation(project(":core:network"))
+    implementation(project(":core:analytics"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
