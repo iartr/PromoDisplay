@@ -27,6 +27,7 @@ include(":app")
 
 addCoreModule("navigation")
 addCoreModule("network")
+addFeatureApiImplModule("auto-boot")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)

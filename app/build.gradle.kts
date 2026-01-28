@@ -71,6 +71,9 @@ dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":core:network"))
 
+    implementation(project(":feature:auto-boot-api"))
+    implementation(project(":feature:auto-boot-impl"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
