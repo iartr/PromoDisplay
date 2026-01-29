@@ -68,8 +68,6 @@ tracer {
 }
 
 dependencies {
-    implementation(project(":feature:player-api"))
-    implementation(project(":feature:player-impl"))
 
     implementation(project(":core:settings"))
     implementation(project(":core:navigation"))
@@ -81,7 +79,8 @@ dependencies {
     implementation(project(":feature:ad-source-api"))
     implementation(project(":feature:ad-source-impl"))
     implementation(project(":core:remote-config"))
-
+    implementation(project(":feature:player-api"))
+    implementation(project(":feature:player-impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
