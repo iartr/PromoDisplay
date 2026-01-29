@@ -26,7 +26,16 @@ val featureDir = "feature"
 include(":app")
 
 addCoreModule("ui")
+addCoreModule("settings")
+addCoreModule("remote-config")
+addCoreModule("navigation")
+addCoreModule("network")
+addCoreModule("logger")
+addCoreModule("analytics")
+addFeatureApiImplModule("auto-boot")
 addFeatureApiImplModule("auto-boot-sample")
+addFeatureApiImplModule("ad-source")
+addFeatureApiImplModule("player")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
@@ -53,3 +62,4 @@ fun includeModule(
     include(moduleName)
     project(moduleName).projectDir = File(modulePath)
 }
+
