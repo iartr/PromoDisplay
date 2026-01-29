@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.offerfactory.promodisplay.logger"
+    namespace = "ru.offerfactory.promodisplay.auto_boot_api"
     compileSdk = 36
 
     defaultConfig {
@@ -33,11 +33,9 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+
+    // coroutines
+    implementation(libs.kotlinx.coroutines.core)
+
 }
