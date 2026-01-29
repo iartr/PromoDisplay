@@ -68,6 +68,7 @@ tracer {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
 
     implementation(project(":core:settings"))
     implementation(project(":core:navigation"))
