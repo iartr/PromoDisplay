@@ -5,9 +5,9 @@ import java.io.InputStream
 
 interface AdSourceApi {
 
-    fun hasActualADAsset(adId: String, assetSha256: ByteArray): Boolean
+    suspend fun hasActualADAsset(adId: String, assetSHA256: ByteArray): Boolean
 
-    fun loadADAsset(asset: AdAsset): Boolean
+    suspend fun loadADAsset(asset: AdAsset): Boolean
 
-    fun streamADAsset(asset: AdAsset): InputStream
+    suspend fun streamADAsset(asset: AdAsset): InputStream
 }
