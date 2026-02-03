@@ -102,6 +102,8 @@ dependencies {
     implementation(libs.retrofit.converter.moshi)
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)
+    implementation(libs.dagger)
+    ksp(libs.dagger.compiler)
     ksp(libs.room.compiler)
 
     implementation(platform(libs.tracer.platform))
