@@ -40,6 +40,7 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.retrofit.converter.moshi)
     implementation(libs.dagger)
     ksp(libs.dagger.compiler)
 
