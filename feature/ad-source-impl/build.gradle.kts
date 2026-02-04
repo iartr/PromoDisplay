@@ -36,17 +36,13 @@ android {
 dependencies {
 
     implementation(project(":feature:ad-source-api"))
-
+    implementation(libs.dagger)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
 
-    implementation(libs.retrofit)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.retrofit.converter.moshi)
 
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
+    implementation(libs.retrofit.converter.moshi)
+    implementation(project(":core:settings"))
     ksp(libs.room.compiler)
 
 

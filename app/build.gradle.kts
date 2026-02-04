@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
+    implementation(libs.dagger)
 
     implementation(platform(libs.tracer.platform))
     implementation(libs.tracer.crash.report)
