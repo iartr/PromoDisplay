@@ -18,7 +18,6 @@ ksp = "2.0.21-1.0.25"
 tracer = "1.1.7"
 appcompat = "1.7.1"
 material = "1.13.0"
-dagger = "2.59"
 moshi = "1.15.2"
 
 [libraries]
@@ -57,8 +56,6 @@ tracer-profiler-sampling = { group = "ru.ok.tracer", name = "tracer-profiler-sam
 tracer-profiler-systrace = { group = "ru.ok.tracer", name = "tracer-profiler-systrace" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
-dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", version.ref = "dagger" }
 moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 
