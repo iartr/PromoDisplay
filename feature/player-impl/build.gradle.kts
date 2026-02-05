@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.offerfactory.promodisplay.settings"
+    namespace = "ru.offerfactory.promodisplay.player.impl"
     compileSdk = 36
 
     defaultConfig {
@@ -27,6 +27,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -35,11 +36,8 @@ android {
 }
 
 dependencies {
-
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.datastore)
-    implementation(libs.kotlinx.coroutines.android)
-
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
