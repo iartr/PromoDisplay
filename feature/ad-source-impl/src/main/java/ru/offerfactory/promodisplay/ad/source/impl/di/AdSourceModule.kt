@@ -8,7 +8,6 @@ import javax.inject.Singleton
 
 @Module
 abstract class AdSourceModule {
-
     @Binds
     @Singleton
     abstract fun bindAdSource(impl: AdvertisementImpl): AdvertisementApi

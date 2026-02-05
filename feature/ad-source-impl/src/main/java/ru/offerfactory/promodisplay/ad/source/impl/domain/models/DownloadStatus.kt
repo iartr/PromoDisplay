@@ -1,4 +1,4 @@
-package ru.offerfactory.promodisplay.ad.source.impl.models
+package ru.offerfactory.promodisplay.ad.source.impl.domain.models
 
 sealed class DownloadState {
     object Pending : DownloadState()

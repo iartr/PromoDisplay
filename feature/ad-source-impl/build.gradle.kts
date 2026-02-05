@@ -36,17 +36,15 @@ android {
 }
 
 dependencies {
-
+    implementation(project(":core:settings"))
     implementation(project(":feature:ad-source-api"))
+
     implementation(libs.dagger)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
 
-
     implementation(libs.retrofit.converter.moshi)
-    implementation(project(":core:settings"))
     ksp(libs.room.compiler)
-
 
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)

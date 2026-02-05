@@ -1,6 +1,6 @@
 package ru.offerfactory.promodisplay.ad.source.api
 
-import ru.offerfactory.promodisplay.ad.source.api.models.AdClip
+import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 
 sealed class AdSourceState {
     object ShowFallback : AdSourceState()
