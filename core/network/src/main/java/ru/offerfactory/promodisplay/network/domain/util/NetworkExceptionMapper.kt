@@ -9,9 +9,7 @@ object NetworkExceptionMapper {
     fun Throwable.toNetworkError(): NetworkError =
         when (this) {
             is UnknownHostException -> NetworkError.NoInternetError(this)
-
             is SocketTimeoutException -> NetworkError.TimeoutError(this)
-
             is HttpException -> {
                 val code = this.code()
 
@@ -21,7 +19,6 @@ object NetworkExceptionMapper {
                     NetworkError.ServerError(code, this.message(), this)
                 }
             }
-
             else -> NetworkError.UnknownNetworkError(this)
         }
 }
