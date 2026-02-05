@@ -12,8 +12,6 @@ kotlin {
     }
 }
 dependencies {
-    implementation(libs.androidx.core.ktx)
-
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
 }
