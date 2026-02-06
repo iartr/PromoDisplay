@@ -70,6 +70,7 @@ dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", versi
 
 
 
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
@@ -79,4 +80,5 @@ tracer = { id = "ru.ok.tracer", version.ref = "tracer" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+
 
