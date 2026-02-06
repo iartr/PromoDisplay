@@ -22,7 +22,6 @@ datastore = "1.0.0"
 serialization = "1.6.3"
 appcompat = "1.7.1"
 material = "1.13.0"
-moshi = "1.15.2"
 jetbrainsKotlinJvm = "2.0.21"
 dagger = "2.59"
 
@@ -65,14 +64,10 @@ tracer-profiler-sampling = { group = "ru.ok.tracer", name = "tracer-profiler-sam
 tracer-profiler-systrace = { group = "ru.ok.tracer", name = "tracer-profiler-systrace" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
-moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
 dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", version.ref = "dagger" }
-
-
 
 
 [plugins]
@@ -84,4 +79,3 @@ tracer = { id = "ru.ok.tracer", version.ref = "tracer" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
-
