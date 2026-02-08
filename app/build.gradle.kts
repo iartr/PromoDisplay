@@ -69,7 +69,7 @@ tracer {
 
 dependencies {
     implementation(project(":core:ui"))
-
+    implementation(project(":core:remote-config"))
     implementation(project(":core:settings"))
     implementation(project(":core:navigation"))
     implementation(project(":core:network"))
@@ -79,7 +79,6 @@ dependencies {
     implementation(project(":feature:auto-boot-impl"))
     implementation(project(":feature:ad-source-api"))
     implementation(project(":feature:ad-source-impl"))
-    implementation(project(":core:remote-config"))
     implementation(project(":feature:player-api"))
     implementation(project(":feature:player-impl"))
 
@@ -105,6 +104,7 @@ dependencies {
     implementation(libs.dagger)
     ksp(libs.dagger.compiler)
     ksp(libs.room.compiler)
+    implementation(libs.dagger)
 
     implementation(platform(libs.tracer.platform))
     implementation(libs.tracer.crash.report)

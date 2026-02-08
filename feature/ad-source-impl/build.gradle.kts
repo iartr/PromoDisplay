@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -35,18 +36,17 @@ android {
 }
 
 dependencies {
-
+    implementation(project(":core:settings"))
     implementation(project(":feature:ad-source-api"))
 
+    implementation(libs.dagger)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
 
-    implementation(libs.retrofit)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
     implementation(libs.retrofit.converter.moshi)
+    ksp(libs.room.compiler)
 
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
