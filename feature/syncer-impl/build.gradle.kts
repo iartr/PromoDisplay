@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -37,10 +38,13 @@ android {
 
 dependencies {
     implementation(project(":core:network"))
+    implementation(project(":core:settings"))
+    implementation(project(":feature:syncer-api"))
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.retrofit.converter.moshi)
+    implementation(libs.retrofit)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.dagger)
     ksp(libs.dagger.compiler)
 

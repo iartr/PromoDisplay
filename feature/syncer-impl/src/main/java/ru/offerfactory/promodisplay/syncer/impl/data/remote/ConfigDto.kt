@@ -1,8 +1,8 @@
 package ru.offerfactory.promodisplay.syncer.impl.data.remote
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class ConfigDto(
     val configVersion: Int,
     val generatedAt: String,
@@ -14,13 +14,13 @@ data class ConfigDto(
     val items: List<ConfigItemDto>
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class FallbackDto(
     val type: String,          //enum
     val imageKey: String
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class DownloadPolicyDto(
     val maxParallelDownloads: Int,
     val maxRetries: Int,
@@ -28,14 +28,14 @@ data class DownloadPolicyDto(
     val maxBackoffMs: Long
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class StoragePolicyDto(
     val minFreeBytes: Long,
     val evictStrategy: String,      //enum
     val pinnedAssetIds: List<String>
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class ConfigItemDto(
     val id: String,
     val priority: Int,
@@ -43,7 +43,7 @@ data class ConfigItemDto(
     val asset: AssetDto
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class AssetDto(
     val mimeType: String,
     val sizeBytes: Long,
