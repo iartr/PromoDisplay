@@ -1,4 +1,4 @@
-package ru.offerfactory.promodisplay.syncer.impl.mock
+package ru.offerfactory.promodisplay.syncer.impl.syncer
 
 import android.content.Context
 import androidx.work.Worker
