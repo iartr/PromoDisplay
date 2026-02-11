@@ -5,7 +5,8 @@ import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
 import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 import ru.offerfactory.promodisplay.settings.ConfigManager
 import javax.inject.Inject
-
+import javax.inject.Singleton
+@Singleton
 class AdvertisementImpl @Inject constructor(
     private val configManager: ConfigManager
 ): AdvertisementApi {
@@ -13,4 +14,3 @@ class AdvertisementImpl @Inject constructor(
         TODO("Not yet implemented")
     }
 }
-
