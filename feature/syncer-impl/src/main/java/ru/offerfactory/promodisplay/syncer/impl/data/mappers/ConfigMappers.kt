@@ -1,10 +1,15 @@
 package ru.offerfactory.promodisplay.syncer.impl.data.mappers
 
+import ru.offerfactory.promodisplay.settings.domain.model.AssetInfo
+import ru.offerfactory.promodisplay.settings.domain.model.ConfigEntity
+import ru.offerfactory.promodisplay.settings.domain.model.ConfigItemInfo
+import ru.offerfactory.promodisplay.settings.domain.model.DownloadPolicyInfo
+import ru.offerfactory.promodisplay.settings.domain.model.FallbackInfo
+import ru.offerfactory.promodisplay.settings.domain.model.StoragePolicyInfo
+import ru.offerfactory.promodisplay.settings.domain.model.util.EvictStrategy
+import ru.offerfactory.promodisplay.settings.domain.model.util.FallbackType
 import ru.offerfactory.promodisplay.syncer.impl.data.remote.ConfigDto
 import ru.offerfactory.promodisplay.syncer.impl.data.remote.ConfigItemDto
-import ru.offerfactory.promodisplay.syncer.impl.domain.model.*
-import ru.offerfactory.promodisplay.syncer.impl.domain.model.util.EvictStrategy
-import ru.offerfactory.promodisplay.syncer.impl.domain.model.util.FallbackType
 
 
 class ConfigMappers {
@@ -14,8 +19,8 @@ class ConfigMappers {
     fun String.toEvictStrategy(): EvictStrategy =
         EvictStrategy.entries.firstOrNull { it.name == this } ?: EvictStrategy.LOW_PRIORITY_FIRST
 
-    fun ConfigDto.toDomain(): ConfigInfo =
-        ConfigInfo(
+    fun ConfigDto.toDomain(): ConfigEntity =
+        ConfigEntity(
             version = configVersion,
             pollIntervalSec = pollIntervalSec,
             fallback = FallbackInfo(

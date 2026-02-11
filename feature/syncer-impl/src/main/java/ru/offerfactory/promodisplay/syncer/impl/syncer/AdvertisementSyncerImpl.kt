@@ -6,13 +6,15 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import ru.offerfactory.promodisplay.syncer.impl.domain.repository.ConfigRepository
 import syncer.AdvertisementSyncer
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-class AdvertisementSyncerImpl(
+class AdvertisementSyncerImpl @Inject constructor(
+    private val repository: ConfigRepository,
     private val context: Context
 ) : AdvertisementSyncer {
-
     override fun schedulePeriodicSync() {
         val request =
             PeriodicWorkRequestBuilder<SyncAdvertisementWorker>(
@@ -34,6 +36,6 @@ class AdvertisementSyncerImpl(
     }
 
     override suspend fun syncNow() {
-        //repository.fetchConfig()
+        repository.fetchConfig()
     }
 }

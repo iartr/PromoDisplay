@@ -3,42 +3,26 @@ package ru.offerfactory.promodisplay.syncer.impl.syncer
 import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import ru.offerfactory.promodisplay.network.domain.util.NetworkResult
-import ru.offerfactory.promodisplay.settings.ConfigManager
-import ru.offerfactory.promodisplay.syncer.impl.domain.model.ConfigInfo
 import ru.offerfactory.promodisplay.syncer.impl.domain.repository.ConfigRepository
+import ru.offerfactory.promodisplay.syncer.impl.domain.usecase.ApplyRemoteConfigUseCase
 
 class SyncAdvertisementWorker(
     context: Context,
     workerParams: WorkerParameters,
     private val repository: ConfigRepository,
-    private val configManager: ConfigManager
+    private val applyRemoteConfigUseCase: ApplyRemoteConfigUseCase
 ) : Worker(context, workerParams) {
-
     override fun doWork(): Result = runBlocking {
-        try {
-            when (val networkResult: NetworkResult<ConfigInfo> = repository.fetchConfig()) {
-                is NetworkResult.Success -> {
-                    val newConfig = networkResult.data
+        when (val result = repository.fetchConfig()) {
 
-                    val currentConfig = configManager.getConfig().firstOrNull()
-
-                    if (currentConfig?.items != newConfig.items) {
-                        //configManager.saveConfig(newConfig)
-                        TODO("mapper ConfigInfo -> ConfigModel?")
-                    }
-
-                    Result.success()
-                }
-
-                is NetworkResult.Failure -> {
-                    Result.retry()
-                }
+            is NetworkResult.Success -> {
+                applyRemoteConfigUseCase.applyIfChanged(result.data)
+                Result.success()
             }
-        } catch (e: Exception) {
-            Result.retry()
+
+            is NetworkResult.Failure -> Result.retry()
         }
     }
 }
