@@ -27,20 +27,22 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        enableAutoStart(this)
+        enableAutoStart()
     }
-}
 
-private fun enableAutoStart(context: Context) {
-    with(context) {
+
+    private fun enableAutoStart() {
         val dpm = getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val admin = AdminReceiver.getComponentName(this)
 
         if (!dpm.isDeviceOwnerApp(packageName)) return
 
         dpm.setLockTaskPackages(admin, arrayOf(packageName))
+
     }
 }
+
+
 
 
 @Composable
