@@ -39,7 +39,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.coroutines.android)
-
+    implementation(libs.dagger)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
