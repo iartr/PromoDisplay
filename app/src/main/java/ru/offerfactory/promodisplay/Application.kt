@@ -1,6 +1,9 @@
 package ru.offerfactory.promodisplay
 
 import android.app.Application
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import ru.offerfactory.promodisplay.di.AppComponent
 import ru.offerfactory.promodisplay.di.DaggerAppComponent
 
@@ -32,7 +35,7 @@ class Application : Application(), HasTracerConfiguration {
                 workManager = appComponent.workManager()
             )
 
-        val workManager = syncerComponent.advertisementSyncer()
+        syncerComponent.advertisementSyncer().schedulePeriodicSync()
     }
 
     override val tracerConfiguration: List<TracerConfiguration>
