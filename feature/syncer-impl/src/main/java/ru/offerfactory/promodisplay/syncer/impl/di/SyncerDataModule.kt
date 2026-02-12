@@ -11,6 +11,7 @@ import ru.offerfactory.promodisplay.syncer.impl.data.usecase.ApplyRemoteConfigUs
 import ru.offerfactory.promodisplay.syncer.impl.domain.repository.ConfigRepository
 import ru.offerfactory.promodisplay.syncer.impl.domain.usecase.ApplyRemoteConfigUseCase
 import ru.offerfactory.promodisplay.syncer.impl.syncer.AdvertisementSyncerImpl
+import ru.offerfactory.promodisplay.syncer.impl.syncer.SyncWorkerFactory
 import syncer.AdvertisementSyncer
 import javax.inject.Singleton
 
@@ -42,4 +43,11 @@ class SyncerDataModule {
         configManager: ConfigManager
     ): ApplyRemoteConfigUseCase =
         ApplyRemoteConfigUseCaseImpl(configManager)
+
+    @Provides
+    @Singleton
+    fun provideSyncWorkerFactory(
+        repository: ConfigRepository,
+        applyRemoteConfigUseCase: ApplyRemoteConfigUseCase
+    ): SyncWorkerFactory = SyncWorkerFactory(repository, applyRemoteConfigUseCase)
 }
