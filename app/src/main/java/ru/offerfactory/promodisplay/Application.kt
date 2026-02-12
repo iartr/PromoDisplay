@@ -1,8 +1,8 @@
 package ru.offerfactory.promodisplay
 
 import android.app.Application
-import ru.offerfactory.promodisplay.di.AppComponent
-import ru.offerfactory.promodisplay.di.DaggerAppComponent
+import androidx.work.Configuration
+import androidx.work.WorkManager
 import ru.offerfactory.promodisplay.syncer.impl.di.DaggerSyncerComponent
 import ru.offerfactory.promodisplay.syncer.impl.di.SyncerComponent
 import ru.ok.tracer.CoreTracerConfiguration
@@ -15,24 +15,24 @@ import ru.ok.tracer.heap.dumps.HeapDumpConfiguration
 import ru.ok.tracer.profiler.sampling.SamplingProfilerConfiguration
 import ru.ok.tracer.profiler.systrace.SystraceProfilerConfiguration
 
-class Application : Application(), HasTracerConfiguration {
+class Application : Application(), HasTracerConfiguration, Configuration.Provider {
 
-    lateinit var appComponent: AppComponent
     lateinit var syncerComponent: SyncerComponent
 
     override fun onCreate() {
         super.onCreate()
 
-        appComponent = DaggerAppComponent.factory().create(context = this)
+        syncerComponent = DaggerSyncerComponent.factory().create(context = this)
 
-        syncerComponent = DaggerSyncerComponent.factory()
-            .create(
-                context = this,
-                workManager = appComponent.workManager()
-            )
+        WorkManager.initialize(this, workManagerConfiguration)
 
         syncerComponent.advertisementSyncer().schedulePeriodicSync()
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(syncerComponent.syncWorkerFactory())
+            .build()
 
     override val tracerConfiguration: List<TracerConfiguration>
         get() = listOf(

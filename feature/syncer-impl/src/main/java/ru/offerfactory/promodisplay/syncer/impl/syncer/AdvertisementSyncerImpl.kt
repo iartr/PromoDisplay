@@ -1,5 +1,6 @@
 package ru.offerfactory.promodisplay.syncer.impl.syncer
 
+import android.content.Context
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -11,10 +12,12 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class AdvertisementSyncerImpl @Inject constructor(
-    private val workManager: WorkManager
+    private val context: Context
 ) : AdvertisementSyncer {
 
     override fun schedulePeriodicSync() {
+        val workManager = WorkManager.getInstance(context)
+
         val configFetchOnStartup = OneTimeWorkRequestBuilder<SyncAdvertisementWorker>()
             .setConstraints(
                 Constraints.Builder()

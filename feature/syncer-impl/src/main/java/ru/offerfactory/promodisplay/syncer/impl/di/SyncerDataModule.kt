@@ -1,5 +1,6 @@
 package ru.offerfactory.promodisplay.syncer.impl.di
 
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import retrofit2.Retrofit
@@ -37,8 +38,8 @@ class SyncerDataModule {
     @Provides
     @Singleton
     fun provideAdvertisementSyncer(
-        impl: AdvertisementSyncerImpl
-    ): AdvertisementSyncer = impl
+        context: Context
+    ): AdvertisementSyncer = AdvertisementSyncerImpl(context)
 
     @Provides
     @Singleton

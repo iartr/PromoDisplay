@@ -1,7 +1,6 @@
 package ru.offerfactory.promodisplay.syncer.impl.di
 
 import android.content.Context
-import androidx.work.WorkManager
 import dagger.BindsInstance
 import dagger.Component
 import ru.offerfactory.promodisplay.network.di.NetworkModule
@@ -27,8 +26,7 @@ interface SyncerComponent {
     @Component.Factory
     interface Factory {
         fun create(
-            @BindsInstance context: Context,
-            @BindsInstance workManager: WorkManager
+            @BindsInstance context: Context
         ): SyncerComponent
     }
 }
