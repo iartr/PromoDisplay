@@ -6,7 +6,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import syncer.AdvertisementSyncer
+import ru.offerfactory.promodisplay.syncer.AdvertisementSyncer
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -34,9 +34,13 @@ class AdvertisementSyncerImpl @Inject constructor(
 
         workManager.enqueue(configFetchOnStartup)
         workManager.enqueueUniquePeriodicWork(
-            "advertisement_config_sync",
+            ADVERTISEMENT_CONFIG_SYNC_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             periodicalConfigFetch
         )
+    }
+
+    private companion object {
+        const val ADVERTISEMENT_CONFIG_SYNC_WORK_NAME = "advertisement_config_sync"
     }
 }

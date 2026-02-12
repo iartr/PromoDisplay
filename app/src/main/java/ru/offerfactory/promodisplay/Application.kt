@@ -3,7 +3,6 @@ package ru.offerfactory.promodisplay
 import android.app.Application
 import ru.offerfactory.promodisplay.di.AppComponent
 import ru.offerfactory.promodisplay.di.DaggerAppComponent
-
 import ru.offerfactory.promodisplay.syncer.impl.di.DaggerSyncerComponent
 import ru.offerfactory.promodisplay.syncer.impl.di.SyncerComponent
 import ru.ok.tracer.CoreTracerConfiguration

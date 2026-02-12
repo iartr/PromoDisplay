@@ -6,8 +6,8 @@ import dagger.BindsInstance
 import dagger.Component
 import ru.offerfactory.promodisplay.network.di.NetworkModule
 import ru.offerfactory.promodisplay.settings.di.SettingsModule
+import ru.offerfactory.promodisplay.syncer.AdvertisementSyncer
 import ru.offerfactory.promodisplay.syncer.impl.syncer.SyncWorkerFactory
-import syncer.AdvertisementSyncer
 import javax.inject.Singleton
 
 @Singleton
