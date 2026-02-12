@@ -35,6 +35,7 @@ addCoreModule("analytics")
 addCoreModule("auto-boot")
 addFeatureApiImplModule("ad-source")
 addFeatureApiImplModule("player")
+addFeatureApiImplModule("syncer")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)
