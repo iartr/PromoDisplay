@@ -4,7 +4,11 @@ import android.content.Context
 import androidx.work.WorkManager
 import dagger.Module
 import dagger.Provides
+import ru.offerfactory.promodisplay.Application
+import ru.offerfactory.promodisplay.BuildConfig
+import ru.offerfactory.promodisplay.logger.IsDebugLogging
 import javax.inject.Singleton
+
 
 @Module
 object AppModule {
@@ -13,5 +17,17 @@ object AppModule {
     @Singleton
     fun provideWorkManager(context: Context): WorkManager {
         return WorkManager.getInstance(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideApplication(context: Context) : Application{
+        return context.applicationContext as Application
+    }
+
+    @Provides
+    @IsDebugLogging
+    fun provideIsDebugLogging() : Boolean{
+        return BuildConfig.DEBUG
     }
 }
