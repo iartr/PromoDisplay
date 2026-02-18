@@ -35,4 +35,17 @@ object AdFileValidator {
         }
 
     }
+
+    fun String.hexToByteArray(): ByteArray {
+        val result = ByteArray(length / 2)
+        for (i in indices step 2) {
+            val firstDigit = Character.digit(this[i], 16)
+            val secondDigit = Character.digit(this[i + 1], 16)
+
+            require(firstDigit != -1 && secondDigit != -1) { "Invalid hex character" }
+
+            result[i / 2] = ((firstDigit shl 4) + secondDigit).toByte()
+        }
+        return result
+    }
 }
