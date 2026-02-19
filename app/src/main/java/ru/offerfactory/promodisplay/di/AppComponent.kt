@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.WorkManager
 import dagger.BindsInstance
 import dagger.Component
+import ru.offerfactory.promodisplay.logger.AppLogger
 import ru.offerfactory.promodisplay.logger.LoggerModule
 import javax.inject.Singleton
 
@@ -12,6 +13,7 @@ import javax.inject.Singleton
 
 interface AppComponent {
     fun workManager(): WorkManager
+    fun logger() : AppLogger
 
     @Component.Factory
     interface Factory {

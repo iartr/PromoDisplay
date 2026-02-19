@@ -1,6 +1,7 @@
 package ru.offerfactory.promodisplay.logger
 
 import android.app.Application
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import timber.log.Timber
@@ -15,13 +16,18 @@ object LoggerModule {
         @IsDebugLogging isDebug : Boolean,
         application: Application
     ) : AppLogger{
-
         if(isDebug){
             Timber.plant(Timber.DebugTree())
         } else {
-            //Timber.plant(FileLoggingTree(application))
+            //Timber.plant(FileLoggingTree(context.applicationContext))
         }
 
         return AppLoggerImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideApplication(context: Context) : Application{
+        return context.applicationContext as Application
     }
 }

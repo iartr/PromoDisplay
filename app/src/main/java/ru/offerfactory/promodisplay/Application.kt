@@ -18,7 +18,6 @@ import ru.ok.tracer.profiler.sampling.SamplingProfilerConfiguration
 import ru.ok.tracer.profiler.systrace.SystraceProfilerConfiguration
 
 class Application : Application(), HasTracerConfiguration, Configuration.Provider {
-
     lateinit var appComponent: AppComponent
     lateinit var syncerComponent: SyncerComponent
 

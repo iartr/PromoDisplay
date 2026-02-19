@@ -1,8 +1,6 @@
 package ru.offerfactory.promodisplay
 
 import android.app.admin.DevicePolicyManager
-import android.content.Context
-import android.content.Context.DEVICE_POLICY_SERVICE
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,11 +36,8 @@ class MainActivity : ComponentActivity() {
         if (!dpm.isDeviceOwnerApp(packageName)) return
 
         dpm.setLockTaskPackages(admin, arrayOf(packageName))
-
     }
 }
-
-
 
 
 @Composable
