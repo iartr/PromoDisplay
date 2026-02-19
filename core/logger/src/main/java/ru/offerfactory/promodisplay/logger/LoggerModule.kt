@@ -13,13 +13,13 @@ object LoggerModule {
     @Provides
     @Singleton
     fun provideLogger(
-        @IsDebugLogging isDebug : Boolean,
+        @IsDebugLogging isDebug: Boolean,
         application: Application
     ) : AppLogger{
         if(isDebug){
             Timber.plant(Timber.DebugTree())
         } else {
-            //Timber.plant(FileLoggingTree(context.applicationContext))
+            Timber.plant(FileLoggingTree(context = application))
         }
 
         return AppLoggerImpl()
@@ -27,7 +27,7 @@ object LoggerModule {
 
     @Provides
     @Singleton
-    fun provideApplication(context: Context) : Application{
+    fun provideApplication(context: Context): Application {
         return context.applicationContext as Application
     }
 }
