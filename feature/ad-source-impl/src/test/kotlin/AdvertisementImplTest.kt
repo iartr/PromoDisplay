@@ -56,7 +56,7 @@ class AdvertisementImplTest {
     }
 
     @Test
-    fun `сортирует по приоритету и repeatInCycle если файлы существуют`() = runTest {
+    fun `sorts by priority and repeats in cycle if files exist`() = runTest {
 
         val configFlow = MutableStateFlow(
             ConfigModel(
@@ -102,15 +102,139 @@ class AdvertisementImplTest {
             clips.map { it.id }
         )
 
-        // Дополнительные проверки
         assertEquals(6, clips.size, "Общее количество клипов должно быть 6")
         assertEquals(1, clips.count { it.id == "b" })
         assertEquals(3, clips.count { it.id == "c" })
         assertEquals(2, clips.count { it.id == "a" })
     }
 
+
     @Test
-    fun `если нет ни одного файла - возвращает пустой список`() = runTest {
+    fun `the first available file must be the first in the clip queue`() = runTest {
+
+        val items = listOf(
+            remote("low", 10, 1),
+            remote("high", 80, 1),
+            remote("medium", 40, 2)
+        )
+
+        val configFlow = MutableStateFlow(
+            ConfigModel(
+                version = 1,
+                generatedAt = Instant.now(),
+                serverTime = Instant.now(),
+                pollInterval = 60,
+                items = items
+            )
+        )
+
+        coEvery { configManager.getConfig() } returns configFlow
+
+
+        items.forEach { item ->
+            val file = mockk<File> {
+                every { exists() } returns true
+                every { length() } returns item.sizeBytes
+                every { absolutePath } returns "/ads/${item.id}.mp4"
+            }
+            every { storage.getFileForId(item.id) } returns file
+        }
+
+        advertisement = AdvertisementImpl(
+            configManager = configManager,
+            downloader = downloader,
+            storage = storage,
+            scope = CoroutineScope(dispatcher + SupervisorJob())
+        )
+
+        advanceUntilIdle()
+        advanceUntilIdle()
+
+        val clips = advertisement.getClips().first()
+
+        assertEquals(
+            listOf("high", "medium", "medium", "low"),
+            clips.map { it.id },
+            "Ожидаемый порядок: высокий приоритет → повторяющийся средний → низкий"
+        )
+
+        assertEquals(
+            "high",
+            clips.firstOrNull()?.id,
+            "Первый клип, который уйдёт плееру — самый приоритетный"
+        )
+    }
+
+    @Test
+    fun `the queue of clips is passed to the player and maintains the expected cycle length`() = runTest {
+
+        val items = listOf(
+            remote("A", 90, 1),
+            remote("B", 60, 3),
+            remote("C", 30, 2)
+        )
+
+        val configFlow = MutableStateFlow(
+            ConfigModel(
+                version = 1,
+                generatedAt = Instant.now(),
+                serverTime = Instant.now(),
+                pollInterval = 60,
+                items = items
+            )
+        )
+
+        coEvery { configManager.getConfig() } returns configFlow
+
+        advertisement = AdvertisementImpl(
+            configManager = configManager,
+            downloader = downloader,
+            storage = storage,
+            scope = CoroutineScope(dispatcher + SupervisorJob())
+        )
+
+        items.forEach { item ->
+            every { storage.getFileForId(item.id) } returns mockk<File> {
+                every { exists() } returns true
+                every { length() } returns item.sizeBytes
+                every { absolutePath } returns "/mock/${item.id}.mp4"
+            }
+        }
+
+        advanceUntilIdle()
+        advanceUntilIdle()
+
+        val clips = advertisement.getClips().first()
+
+        assertTrue(clips.isNotEmpty(), "Очередь клипов для плеера не должна быть пустой")
+
+        val expectedTotalRepeats = items.sumOf { it.repeatInCycle }
+        assertEquals(
+            expectedTotalRepeats,
+            clips.size,
+            "Длина цикла должна равняться сумме всех repeatInCycle"
+        )
+
+        assertEquals(1, clips.count { it.id == "A" })
+        assertEquals(3, clips.count { it.id == "B" })
+        assertEquals(2, clips.count { it.id == "C" })
+
+        assertEquals("A", clips[0].id, "Первым должен идти самый приоритетный")
+        assertTrue(
+            clips.subList(0, 4).any { it.id == "B" },
+            "Элементы B должны появляться в первой части цикла"
+        )
+
+        val secondEmission = advertisement.getClips().first()
+        assertEquals(
+            clips,
+            secondEmission,
+            "Повторный вызов first() должен давать ту же очередь (если нет изменений)"
+        )
+    }
+
+    @Test
+    fun `If there are no files, it returns an empty list`() = runTest {
         val configFlow = MutableStateFlow(
             ConfigModel(
                 version = 1,
@@ -151,7 +275,7 @@ class AdvertisementImplTest {
     }
 
     @Test
-    fun `один элемент с repeatInCycle = 5 должен повторяться 5 раз`() = runTest {
+    fun `one element with repeatInCycle = 5 should be repeated 5 times`() = runTest {
         val configFlow = MutableStateFlow(
             ConfigModel(
                 version = 1,
@@ -194,7 +318,7 @@ class AdvertisementImplTest {
     }
 
     @Test
-    fun `при смене конфига список клипов должен обновиться`() = runTest {
+    fun `When changing the config, the list of clips should be updated`() = runTest {
         val initialItems = listOf(remote("old", 10, 1))
         val newItems = listOf(remote("new1", 20, 2), remote("new2", 30, 1))
 
@@ -258,47 +382,47 @@ class AdvertisementImplTest {
     }
 
     @Test
-    fun `элементы с одинаковым приоритетом должны сохранять относительный порядок из конфига`() = runTest {
-        val configFlow = MutableStateFlow(
-            ConfigModel(
-                version = 1,
-                generatedAt = Instant.now(),
-                serverTime = Instant.now(),
-                pollInterval = 60,
-                items = listOf(
-                    remote("x", 100, 1),
-                    remote("y", 100, 1),
-                    remote("z", 50, 1)
+    fun `elements with the same priority must maintain the relative order from the config`() =
+        runTest {
+            val configFlow = MutableStateFlow(
+                ConfigModel(
+                    version = 1,
+                    generatedAt = Instant.now(),
+                    serverTime = Instant.now(),
+                    pollInterval = 60,
+                    items = listOf(
+                        remote("x", 100, 1),
+                        remote("y", 100, 1),
+                        remote("z", 50, 1)
+                    )
                 )
             )
-        )
 
-        coEvery { configManager.getConfig() } returns configFlow
+            coEvery { configManager.getConfig() } returns configFlow
 
-        advertisement = AdvertisementImpl(
-            configManager = configManager,
-            downloader = downloader,
-            storage = storage,
-            scope = CoroutineScope(dispatcher + SupervisorJob())
-        )
+            advertisement = AdvertisementImpl(
+                configManager = configManager,
+                downloader = downloader,
+                storage = storage,
+                scope = CoroutineScope(dispatcher + SupervisorJob())
+            )
 
-        configFlow.value.items.forEach { item ->
-            every { storage.getFileForId(item.id) } returns mockk<File> {
-                every { exists() } returns true
-                every { length() } returns item.sizeBytes
-                every { absolutePath } returns "/mock/${item.id}.mp4"
+            configFlow.value.items.forEach { item ->
+                every { storage.getFileForId(item.id) } returns mockk<File> {
+                    every { exists() } returns true
+                    every { length() } returns item.sizeBytes
+                    every { absolutePath } returns "/mock/${item.id}.mp4"
+                }
             }
+
+            advanceUntilIdle()
+            advanceUntilIdle()
+
+            val clips = advertisement.getClips().first()
+
+            assertEquals(listOf("x", "y", "z"), clips.map { it.id })
         }
 
-        advanceUntilIdle()
-        advanceUntilIdle()
-
-        val clips = advertisement.getClips().first()
-
-        assertEquals(listOf("x", "y", "z"), clips.map { it.id })
-    }
-
-    // ─────────────────────────────
 
     private fun remote(
         id: String,
