@@ -1,5 +1,6 @@
 package ru.offerfactory.promodisplay.ad.source.impl
 
+import android.net.Network
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
@@ -7,6 +8,7 @@ import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 import ru.offerfactory.promodisplay.ad.source.impl.data.local.AdStorageManager
 import ru.offerfactory.promodisplay.ad.source.impl.data.remote.AdFileDownloader
 import ru.offerfactory.promodisplay.ad.source.impl.domain.models.*
+import ru.offerfactory.promodisplay.ad.source.impl.util.AdConstants
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.checkValidClips
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.hexToByteArray
 import ru.offerfactory.promodisplay.settings.ConfigManager
@@ -20,12 +22,16 @@ class AdvertisementImpl @Inject constructor(
     private val configManager: ConfigManager,
     private val downloader: AdFileDownloader,
     private val storage: AdStorageManager,
+    private val network: Network
     scope: CoroutineScope
 ) : AdvertisementApi {
+
+
+
     private val _internalItems = MutableStateFlow<List<AdItem>>(emptyList())
 
     init {
-        scope.launch { handleConfigUpdate() }
+        scope.launch(Dispatchers.IO) { handleConfigUpdate() }
     }
 
     override suspend fun getClips(): Flow<List<AdClip>> = _internalItems.map { items ->
@@ -53,7 +59,7 @@ class AdvertisementImpl @Inject constructor(
                     priority = remote.priority,
                     repeatInCycle = remote.repeatInCycle,
                     asset = AdAsset(
-                        "video/mp4",
+                        AdConstants.MIME_TYPE_VIDEO,
                         remote.sizeBytes,
                         0L,
                         remote.sha256.hexToByteArray(),
