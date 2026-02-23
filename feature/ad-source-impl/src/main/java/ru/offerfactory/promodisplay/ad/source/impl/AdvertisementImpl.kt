@@ -13,7 +13,6 @@ import ru.offerfactory.promodisplay.ad.source.impl.util.hexToByteArray
 import ru.offerfactory.promodisplay.logger.AppLogger
 import ru.offerfactory.promodisplay.settings.ConfigManager
 import ru.offerfactory.promodisplay.network.domain.util.NetworkConfig
-
 import java.io.File
 import java.time.Instant
 import javax.inject.Inject
