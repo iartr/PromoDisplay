@@ -31,16 +31,12 @@ class ConfigManagerImpl @Inject constructor(
         }
     }
 
-    override fun getConfig(): Flow<ConfigEntity> {
+    override fun getConfig(): Flow<ConfigEntity?> {
         return dataStore.data.map { preferences ->
             val jsonString = preferences[KEY_CONFIG]
-                ?: error("Config not found")
-
             runCatching {
-                json.decodeFromString<ConfigEntity>(jsonString)
-            }.getOrElse {
-                error("Invalid config format")
-            }
+                jsonString?.let { json.decodeFromString<ConfigEntity>(it) }
+            }.getOrNull()
         }
     }
 }
