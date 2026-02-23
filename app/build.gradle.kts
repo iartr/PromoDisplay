@@ -47,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -75,12 +76,13 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:logger"))
     implementation(project(":core:analytics"))
-    implementation(project(":feature:auto-boot-api"))
-    implementation(project(":feature:auto-boot-impl"))
+    implementation(project(":core:auto-boot"))
     implementation(project(":feature:ad-source-api"))
     implementation(project(":feature:ad-source-impl"))
     implementation(project(":feature:player-api"))
     implementation(project(":feature:player-impl"))
+    implementation(project(":feature:syncer-impl"))
+    implementation(project(":feature:syncer-api"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

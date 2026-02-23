@@ -1,5 +1,6 @@
 package ru.offerfactory.promodisplay
 
+import android.app.admin.DevicePolicyManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import ru.offerfactory.promodisplay.auto_boot.AdminReceiver
 import ru.offerfactory.promodisplay.ui.theme.PromoDisplayTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,8 +24,21 @@ class MainActivity : ComponentActivity() {
                 PromoDisplayScreen()
             }
         }
+
+        enableAutoStart()
+    }
+
+
+    private fun enableAutoStart() {
+        val dpm = getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admin = AdminReceiver.getComponentName(this)
+
+        if (!dpm.isDeviceOwnerApp(packageName)) return
+
+        dpm.setLockTaskPackages(admin, arrayOf(packageName))
     }
 }
+
 
 @Composable
 fun PromoDisplayScreen(modifier: Modifier = Modifier) {

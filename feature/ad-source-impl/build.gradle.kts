@@ -37,6 +37,8 @@ android {
 
 dependencies {
     implementation(project(":core:settings"))
+    implementation(project(":core:network"))
+    implementation(project(":core:logger"))
     implementation(project(":feature:ad-source-api"))
 
     implementation(libs.dagger)

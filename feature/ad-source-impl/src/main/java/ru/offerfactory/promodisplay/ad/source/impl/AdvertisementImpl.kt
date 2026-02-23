@@ -1,6 +1,5 @@
 package ru.offerfactory.promodisplay.ad.source.impl
 
-import android.net.Network
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
@@ -11,7 +10,9 @@ import ru.offerfactory.promodisplay.ad.source.impl.domain.models.*
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdConstants
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.checkValidClips
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.hexToByteArray
+import ru.offerfactory.promodisplay.logger.AppLogger
 import ru.offerfactory.promodisplay.settings.ConfigManager
+import ru.offerfactory.promodisplay.network.domain.util.NetworkConfig
 import java.io.File
 import java.time.Instant
 import javax.inject.Inject
@@ -22,11 +23,9 @@ class AdvertisementImpl @Inject constructor(
     private val configManager: ConfigManager,
     private val downloader: AdFileDownloader,
     private val storage: AdStorageManager,
-    private val network: Network
+    private val appLogger: AppLogger,
     scope: CoroutineScope
 ) : AdvertisementApi {
-
-
 
     private val _internalItems = MutableStateFlow<List<AdItem>>(emptyList())
 
@@ -34,38 +33,48 @@ class AdvertisementImpl @Inject constructor(
         scope.launch(Dispatchers.IO) { handleConfigUpdate() }
     }
 
-    override suspend fun getClips(): Flow<List<AdClip>> = _internalItems.map { items ->
-        items.filter { it.downloadState is DownloadState.Completed }
-            .sortedByDescending { it.priority }
-            .flatMap { item ->
-                List(item.repeatInCycle) {
-                    AdClip(
-                        item.id,
-                        item.asset.localPath,
-                        true
-                    )
+    override suspend fun getClips(): Flow<List<AdClip>> = _internalItems
+        .map { items ->
+            items.filter { it.downloadState is DownloadState.Completed }
+        }
+        .distinctUntilChanged()
+        .map { completedItems ->
+            completedItems
+                .sortedByDescending { it.priority }
+                .flatMap { item ->
+                    List(item.repeatInCycle) {
+                        AdClip(
+                            id = item.id,
+                            videoUri = item.asset.localPath,
+                            isReady = true
+                        )
+                    }
                 }
-            }
-    }
+        }
 
     private suspend fun handleConfigUpdate() {
         configManager.getConfig().collectLatest { config ->
+            appLogger.logEvent("Received config: version ${config?.version}, items: ${config?.items?.size ?: 0}")
+            if (config == null) {
+                _internalItems.value = emptyList()
+                return@collectLatest
+            }
             val updatedList = config.items.map { remote ->
                 val adFile = storage.getFileForId(remote.id)
-                val isDone = adFile.exists() && adFile.length() == remote.sizeBytes
+                val isDone = adFile.exists() && adFile.length() == remote.asset.sizeBytes
 
                 AdItem(
                     id = remote.id,
                     priority = remote.priority,
                     repeatInCycle = remote.repeatInCycle,
                     asset = AdAsset(
-                        AdConstants.MIME_TYPE_VIDEO,
-                        remote.sizeBytes,
-                        0L,
-                        remote.sha256.hexToByteArray(),
-                        Instant.now(),
-                        true,
-                        adFile.absolutePath
+                        mimeType = AdConstants.MIME_TYPE_VIDEO,
+                        sizeBytes = remote.asset.sizeBytes,
+                        durationMs = remote.asset.durationMs,
+                        sha256 = remote.asset.sha256.hexToByteArray(),
+                        updatedAt = Instant.now(),
+                        supportsRange = remote.asset.supportsRange,
+                        localPath = adFile.absolutePath
                     ),
                     downloadState = if (isDone) DownloadState.Completed else DownloadState.Pending
                 )
@@ -73,6 +82,7 @@ class AdvertisementImpl @Inject constructor(
 
             _internalItems.value = updatedList
             storage.cleanupOldFiles(config.items.map { it.id }.toSet())
+            appLogger.logEvent("Cleaned up old files, kept ${config.items.size}")
             downloadInQueue(updatedList)
         }
     }
@@ -89,6 +99,7 @@ class AdvertisementImpl @Inject constructor(
     private suspend fun downloadSingleItem(item: AdItem) {
         val path = item.asset.localPath
         if (path == null) {
+            appLogger.logError(Throwable("No local path for ad ${item.id}"))
             updateItemState(item.id, DownloadState.Failed("No local path"))
             return
         }
@@ -103,24 +114,34 @@ class AdvertisementImpl @Inject constructor(
         updateItemState(item.id, DownloadState.Downloading(0))
 
         val result = downloader.download(
-            url = "https://wlzywiojhnktpabjyvii.supabase.co/functions/v1/api-media/${item.id}",
+            url = "${NetworkConfig.BASE_URL}${item.id}",
             file = file,
             expectedSize = item.asset.sizeBytes,
-            onProgress = { updateItemState(item.id, DownloadState.Downloading(it)) }
+            onProgress = { progress ->
+                appLogger.logEvent("Download progress for ${item.id}: $progress%")
+                updateItemState(item.id, DownloadState.Downloading(progress.coerceIn(0, 100)))
+            }
         )
 
         result.onSuccess {
             if (checkValidClips(item.asset)) updateItemState(item.id, DownloadState.Completed)
             else {
-                file.delete(); updateItemState(item.id, DownloadState.Failed("Hash fail"))
+                file.delete()
+                appLogger.logError(Throwable("Hash validation failed for ad ${item.id}"))
+
+                updateItemState(item.id, DownloadState.Failed("Hash fail"))
             }
         }.onFailure {
+            appLogger.logError(Throwable("Download failed for ad ${item.id}"))
             updateItemState(item.id, DownloadState.Failed(it.message ?: "Error"))
         }
     }
 
     private fun updateItemState(id: String, state: DownloadState) {
-        _internalItems.value =
-            _internalItems.value.map { if (it.id == id) it.copy(downloadState = state) else it }
+        _internalItems.update { currentList ->
+            currentList.map { item ->
+                if (item.id == id) item.copy(downloadState = state) else item
+            }
+        }
     }
 }

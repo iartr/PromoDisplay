@@ -1,6 +1,7 @@
 plugins {
     id("java-library")
     id("org.jetbrains.kotlin.jvm")
+    alias(libs.plugins.ksp)
 }
 
 java {
@@ -18,7 +19,11 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.moshi)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit2.kotlinx.serialization.converter)
+
+    implementation(libs.dagger)
+    ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
 }

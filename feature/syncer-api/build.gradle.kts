@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -24,17 +25,23 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 }
 
 dependencies {
+    implementation(project(":core:network"))
+
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.dagger)
+    ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

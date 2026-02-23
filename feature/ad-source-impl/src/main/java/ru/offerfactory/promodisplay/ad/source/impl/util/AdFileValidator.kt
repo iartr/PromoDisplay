@@ -5,7 +5,7 @@ import java.io.File
 import java.security.MessageDigest
 
 object AdFileValidator {
-    fun checkValidClips(asset: AdAsset): Boolean {
+    suspend fun checkValidClips(asset: AdAsset): Boolean {
         val path = asset.localPath ?: return false
         val file = File(path)
 
@@ -18,7 +18,7 @@ object AdFileValidator {
         return fileHash.contentEquals(asset.sha256)
     }
 
-    fun calculateFileSha256Bytes(file: File): ByteArray {
+    suspend fun calculateFileSha256Bytes(file: File): ByteArray {
         return try {
             val digest = MessageDigest.getInstance("SHA-256")
             val buffer = ByteArray(64 * 1024)
