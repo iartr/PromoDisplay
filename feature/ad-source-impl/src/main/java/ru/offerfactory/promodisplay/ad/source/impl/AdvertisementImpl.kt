@@ -8,11 +8,12 @@ import ru.offerfactory.promodisplay.ad.source.impl.data.local.AdStorageManager
 import ru.offerfactory.promodisplay.ad.source.impl.data.remote.AdFileDownloader
 import ru.offerfactory.promodisplay.ad.source.impl.domain.models.*
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdConstants
-import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.checkValidClips
-import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator.hexToByteArray
+import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator
+import ru.offerfactory.promodisplay.ad.source.impl.util.hexToByteArray
 import ru.offerfactory.promodisplay.logger.AppLogger
 import ru.offerfactory.promodisplay.settings.ConfigManager
 import ru.offerfactory.promodisplay.network.domain.util.NetworkConfig
+
 import java.io.File
 import java.time.Instant
 import javax.inject.Inject
@@ -24,6 +25,7 @@ class AdvertisementImpl @Inject constructor(
     private val downloader: AdFileDownloader,
     private val storage: AdStorageManager,
     private val appLogger: AppLogger,
+    private val adFileValidator: AdFileValidator,
     scope: CoroutineScope
 ) : AdvertisementApi {
 
@@ -106,7 +108,7 @@ class AdvertisementImpl @Inject constructor(
 
         val file = File(path)
 
-        if (checkValidClips(item.asset)) {
+        if (adFileValidator.checkValidClips(item.asset)) {
             updateItemState(item.id, DownloadState.Completed)
             return
         }
@@ -124,7 +126,7 @@ class AdvertisementImpl @Inject constructor(
         )
 
         result.onSuccess {
-            if (checkValidClips(item.asset)) updateItemState(item.id, DownloadState.Completed)
+            if (adFileValidator.checkValidClips(item.asset)) updateItemState(item.id, DownloadState.Completed)
             else {
                 file.delete()
                 appLogger.logError(Throwable("Hash validation failed for ad ${item.id}"))

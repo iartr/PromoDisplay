@@ -50,7 +50,8 @@ class ConfigMappers {
                 mimeType = asset.mimeType,
                 sizeBytes = asset.sizeBytes,
                 durationMs = asset.durationMs,
-                supportsRange = asset.supportsRange
+                supportsRange = asset.supportsRange,
+                sha256 = asset.sha256,
             )
         )
 }

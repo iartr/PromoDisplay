@@ -6,8 +6,8 @@ object AdConstants {
     const val ADS_DIRECTORY_NAME = "ads"
     const val BUFFER_SIZE_BYTES = 64 * 1024
     const val HTTP_PARTIAL_CONTENT = 206
-    const val HTTP_OK = 200
     const val PROGRESS_MAX = 100
     const val PERCENT_FACTOR = 100
     const val MIN_RESUME_SIZE_BYTES = 1L
+    const val SHA256_ALGORITHM = "SHA-256"
 }
