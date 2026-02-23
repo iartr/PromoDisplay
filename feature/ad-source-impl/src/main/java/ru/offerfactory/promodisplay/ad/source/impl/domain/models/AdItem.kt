@@ -4,6 +4,7 @@ data class AdItem(
     val id: String,
     val priority: Int,
     val repeatInCycle: Int,
-    val asset: AdAsset
+    val asset: AdAsset,
+    val downloadState: DownloadState
 )
 
