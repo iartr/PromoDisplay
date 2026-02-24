@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.dagger)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.databinding.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
