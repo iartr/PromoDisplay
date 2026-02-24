@@ -34,12 +34,13 @@ data class ConfigItemInfo(
     val id: String,
     val priority: Int,
     val repeatInCycle: Int,
-    val asset: AssetInfo
+    val asset: AssetInfo,
 )
 
 data class AssetInfo(
     val mimeType: String,
     val sizeBytes: Long,
     val durationMs: Long,
-    val supportsRange: Boolean
+    val supportsRange: Boolean,
+    val sha256: String
 )

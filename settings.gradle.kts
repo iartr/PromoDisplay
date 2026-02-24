@@ -32,10 +32,10 @@ addCoreModule("navigation")
 addCoreModule("network")
 addCoreModule("logger")
 addCoreModule("analytics")
-addFeatureApiImplModule("auto-boot")
-addFeatureApiImplModule("auto-boot-sample")
+addCoreModule("auto-boot")
 addFeatureApiImplModule("ad-source")
 addFeatureApiImplModule("player")
+addFeatureApiImplModule("syncer")
 
 fun addCoreModule(moduleName: String) {
     includeModule(moduleName, coreDir)

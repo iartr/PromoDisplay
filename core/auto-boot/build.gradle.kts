@@ -1,11 +1,10 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "ru.offerfactory.promodisplay.ad.source.impl"
+    namespace = "ru.offerfactory.promodisplay.auto_boot"
     compileSdk = 36
 
     defaultConfig {
@@ -36,25 +35,9 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:settings"))
-    implementation(project(":core:network"))
-    implementation(project(":core:logger"))
-    implementation(project(":feature:ad-source-api"))
 
-    implementation(libs.dagger)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
 
-    implementation(libs.retrofit.converter.moshi)
-    ksp(libs.room.compiler)
-
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.kotlinx.coroutines.android)
-
-    testImplementation(libs.mockk)
-    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    testImplementation(kotlin("test"))
 }
