@@ -11,5 +11,3 @@ data class AdAsset(
     val supportsRange: Boolean,
     val localPath: String?
 )
-
-

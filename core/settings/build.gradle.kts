@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -35,12 +36,13 @@ android {
 }
 
 dependencies {
+    api(libs.androidx.datastore)
+    api(libs.kotlinx.coroutines.core)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.datastore)
-    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.dagger)
+    ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

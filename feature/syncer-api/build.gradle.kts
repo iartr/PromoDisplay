@@ -36,13 +36,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:network"))
-
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.dagger)
-    ksp(libs.dagger.compiler)
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

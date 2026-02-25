@@ -43,12 +43,7 @@ dependencies {
 
     implementation(libs.dagger)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-
-    implementation(libs.retrofit.converter.moshi)
-    ksp(libs.room.compiler)
-
-    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.mockk)

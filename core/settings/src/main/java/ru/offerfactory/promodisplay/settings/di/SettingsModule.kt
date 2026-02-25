@@ -6,8 +6,13 @@ import ru.offerfactory.promodisplay.settings.ConfigManager
 import ru.offerfactory.promodisplay.settings.ConfigManagerImpl
 import javax.inject.Singleton
 
-@Module
+@Module(
+    includes = [
+        SettingsDataStoreModule::class
+    ]
+)
 abstract class SettingsModule {
+
     @Binds
     @Singleton
     abstract fun bindConfigManager(configManagerImpl: ConfigManagerImpl): ConfigManager
