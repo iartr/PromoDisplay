@@ -19,38 +19,53 @@ fun String.hexToByteArray(): ByteArray {
     return result
 }
 
+private fun ByteArray.toHexStringLower(): String =
+    joinToString(separator = "") { b -> "%02x".format(b) }
+
 class AdFileValidator @Inject constructor(
     private val appLogger: AppLogger
 ) {
     suspend fun checkValidClips(asset: AdAsset): Boolean = runCatching {
-        val path = asset.localPath ?: return false.also {
-            appLogger.logError(Throwable("No local path in asset for validation"))
-        }
-
-        val file = File(path).also { f ->
-            if (!f.exists()) {
-                appLogger.logError(Throwable("File not found for validation: ${f.absolutePath}"))
-                return false
-            }
-            if (f.length() != asset.sizeBytes) {
-                appLogger.logError(Throwable("Size mismatch for ${f.absolutePath}: expected ${asset.sizeBytes}, actual ${f.length()}"))
-                return false
-            }
-        }
-
-        val fileHash = calculateFileSha256Bytes(file)
-        if (fileHash.isEmpty()) {
-            appLogger.logError(Throwable("Failed to calculate SHA256 for ${file.absolutePath}"))
+        val path = asset.localPath
+        if (path.isNullOrBlank()) {
+            appLogger.logError(Throwable("Validation failed: localPath is null/blank"))
             return false
         }
 
-        val isValid = fileHash.contentEquals(asset.sha256)
-        if (!isValid) {
-            appLogger.logError(Throwable("SHA256 mismatch for ${file.absolutePath}"))
+        val file = File(path)
+        if (!file.exists()) {
+            appLogger.logError(Throwable("Validation failed: file not found: ${file.absolutePath}"))
+            return false
         }
+
+        val actualSize = file.length()
+        if (actualSize != asset.sizeBytes) {
+            appLogger.logError(
+                Throwable("Validation failed: size mismatch: expected=${asset.sizeBytes}, actual=$actualSize, file=${file.absolutePath}")
+            )
+            return false
+        }
+
+        val actualHash = calculateFileSha256Bytes(file)
+        if (actualHash.isEmpty()) {
+            appLogger.logError(Throwable("Validation failed: SHA256 calculation returned empty for ${file.absolutePath}"))
+            return false
+        }
+
+        val expectedHash = asset.sha256
+        val isValid = actualHash.contentEquals(expectedHash)
+        if (!isValid) {
+            appLogger.logError(
+                Throwable(
+                    "Validation failed: SHA256 mismatch for ${file.absolutePath}. " +
+                            "expected=${expectedHash.toHexStringLower()} actual=${actualHash.toHexStringLower()}"
+                )
+            )
+        }
+
         isValid
-    }.getOrElse {
-        appLogger.logError(Throwable("Unexpected error in checkValidClips for ${asset.localPath}"))
+    }.getOrElse { e ->
+        appLogger.logError(Throwable("Validation error for ${asset.localPath}: ${e.message}"))
         false
     }
 
@@ -59,12 +74,15 @@ class AdFileValidator @Inject constructor(
         val buffer = ByteArray(64 * 1024)
 
         file.inputStream().use { input ->
-            generateSequence { input.read(buffer) }
-                .takeWhile { it != -1 }
-                .forEach { digest.update(buffer, 0, it) }
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
         }
+
         digest.digest()
     }.onFailure { e ->
-        appLogger.logError(Throwable("Failed to calculate SHA256 for ${file.absolutePath}"))
+        appLogger.logError(Throwable("Failed to calculate SHA256 for ${file.absolutePath}: ${e.message}"))
     }.getOrDefault(byteArrayOf())
 }

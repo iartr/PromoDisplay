@@ -1,18 +1,28 @@
 package ru.offerfactory.promodisplay.ad.source.impl
 
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
 import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 import ru.offerfactory.promodisplay.ad.source.impl.data.local.AdStorageManager
 import ru.offerfactory.promodisplay.ad.source.impl.data.remote.AdFileDownloader
-import ru.offerfactory.promodisplay.ad.source.impl.domain.models.*
+import ru.offerfactory.promodisplay.ad.source.impl.domain.models.AdAsset
+import ru.offerfactory.promodisplay.ad.source.impl.domain.models.AdItem
+import ru.offerfactory.promodisplay.ad.source.impl.domain.models.DownloadState
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdConstants
 import ru.offerfactory.promodisplay.ad.source.impl.util.AdFileValidator
 import ru.offerfactory.promodisplay.ad.source.impl.util.hexToByteArray
 import ru.offerfactory.promodisplay.logger.AppLogger
-import ru.offerfactory.promodisplay.settings.ConfigManager
 import ru.offerfactory.promodisplay.network.domain.util.NetworkConfig
+import ru.offerfactory.promodisplay.settings.ConfigManager
 import java.io.File
 import java.time.Instant
 import javax.inject.Inject
@@ -55,89 +65,136 @@ class AdvertisementImpl @Inject constructor(
     private suspend fun handleConfigUpdate() {
         configManager.getConfig().collectLatest { config ->
             appLogger.logEvent("Received config: version ${config?.version}, items: ${config?.items?.size ?: 0}")
+
             if (config == null) {
                 _internalItems.value = emptyList()
                 return@collectLatest
             }
-            val updatedList = config.items.map { remote ->
-                val adFile = storage.getFileForId(remote.id)
-                val isDone = adFile.exists() && adFile.length() == remote.asset.sizeBytes
 
-                AdItem(
-                    id = remote.id,
-                    priority = remote.priority,
-                    repeatInCycle = remote.repeatInCycle,
-                    asset = AdAsset(
-                        mimeType = AdConstants.MIME_TYPE_VIDEO,
-                        sizeBytes = remote.asset.sizeBytes,
-                        durationMs = remote.asset.durationMs,
-                        sha256 = remote.asset.sha256.hexToByteArray(),
-                        updatedAt = Instant.now(),
-                        supportsRange = remote.asset.supportsRange,
-                        localPath = adFile.absolutePath
-                    ),
-                    downloadState = if (isDone) DownloadState.Completed else DownloadState.Pending
-                )
-            }.sortedByDescending { it.priority }
+            val updatedList = config.items
+                .map { remote ->
+                    val finalFile = storage.getFileForId(remote.id)
+
+                    AdItem(
+                        id = remote.id,
+                        priority = remote.priority,
+                        repeatInCycle = remote.repeatInCycle,
+                        asset = AdAsset(
+                            mimeType = AdConstants.MIME_TYPE_VIDEO,
+                            sizeBytes = remote.asset.sizeBytes,
+                            durationMs = remote.asset.durationMs,
+                            sha256 = remote.asset.sha256.hexToByteArray(),
+                            updatedAt = Instant.now(),
+                            supportsRange = remote.asset.supportsRange,
+                            localPath = finalFile.absolutePath
+                        ),
+                        downloadState = DownloadState.Pending
+                    )
+                }
+                .sortedByDescending { it.priority }
 
             _internalItems.value = updatedList
+
             storage.cleanupOldFiles(config.items.map { it.id }.toSet())
             appLogger.logEvent("Cleaned up old files, kept ${config.items.size}")
+
             downloadInQueue(updatedList)
         }
     }
 
     private suspend fun downloadInQueue(items: List<AdItem>) = withContext(Dispatchers.IO) {
-        items.forEach { item ->
-            val current = _internalItems.value.find { it.id == item.id } ?: return@forEach
-            if (current.downloadState is DownloadState.Completed) return@forEach
-
-            downloadSingleItem(current)
+        for (item in items) {
+            val current = _internalItems.value.find { it.id == item.id } ?: continue
+            ensureDownloadedAndValid(current)
         }
     }
 
-    private suspend fun downloadSingleItem(item: AdItem) {
-        val path = item.asset.localPath
-        if (path == null) {
+    private suspend fun ensureDownloadedAndValid(item: AdItem) {
+        val finalPath = item.asset.localPath
+        if (finalPath == null) {
             appLogger.logError(Throwable("No local path for ad ${item.id}"))
             updateItemState(item.id, DownloadState.Failed("No local path"))
             return
         }
 
-        val file = File(path)
+        val finalFile = File(finalPath)
 
-        if (adFileValidator.checkValidClips(item.asset)) {
-            updateItemState(item.id, DownloadState.Completed)
-            return
+        if (finalFile.exists()) {
+            val isValid = adFileValidator.checkValidClips(item.asset)
+            if (isValid) {
+                updateItemState(item.id, DownloadState.Completed)
+                return
+            } else {
+                finalFile.delete()
+            }
         }
 
         updateItemState(item.id, DownloadState.Downloading(0))
 
-        val result = downloader.download(
-            url = "${NetworkConfig.BASE_URL}${item.id}",
-            file = file,
-            expectedSize = item.asset.sizeBytes,
-            onProgress = { progress ->
-                appLogger.logEvent("Download progress for ${item.id}: $progress%")
-                updateItemState(item.id, DownloadState.Downloading(progress.coerceIn(0, 100)))
-            }
-        )
+        val tempFile = File(finalFile.parentFile, "${finalFile.name}.tmp")
+        val badFile = File(finalFile.parentFile, "${finalFile.nameWithoutExtension}.bad.${finalFile.extension}")
 
-        result.onSuccess {
-            if (adFileValidator.checkValidClips(item.asset)) updateItemState(
-                item.id,
-                DownloadState.Completed
+        if (tempFile.exists()) tempFile.delete()
+        if (badFile.exists()) badFile.delete()
+
+        val urls = buildMediaUrls(item.id)
+
+        for ((index, url) in urls.withIndex()) {
+            appLogger.logEvent("Ad ${item.id}: download try ${index + 1}/${urls.size} url=$url")
+
+            val result = downloader.download(
+                url = url,
+                file = tempFile,
+                expectedSize = item.asset.sizeBytes,
+                onProgress = { progress ->
+                    updateItemState(item.id, DownloadState.Downloading(progress.coerceIn(0, 100)))
+                }
             )
-            else {
-                file.delete()
-                appLogger.logError(Throwable("Hash validation failed for ad ${item.id}"))
 
-                updateItemState(item.id, DownloadState.Failed("Hash fail"))
+            if (result.isFailure) {
+                // downloader сам логирует детально (404/JSON wrapper/и т.д.)
+                continue
             }
-        }.onFailure {
-            appLogger.logError(Throwable("Download failed for ad ${item.id}"))
-            updateItemState(item.id, DownloadState.Failed(it.message ?: "Error"))
+
+            val tempAsset = item.asset.copy(localPath = tempFile.absolutePath)
+            val isValid = adFileValidator.checkValidClips(tempAsset)
+
+            if (isValid) {
+                if (finalFile.exists()) finalFile.delete()
+
+                val renamed = tempFile.renameTo(finalFile)
+                if (!renamed) {
+                    tempFile.copyTo(finalFile, overwrite = true)
+                    tempFile.delete()
+                }
+
+                appLogger.logEvent("Ad ${item.id}: downloaded + validated OK. saved to ${finalFile.absolutePath}")
+                updateItemState(item.id, DownloadState.Completed)
+                return
+            } else {
+                if (badFile.exists()) badFile.delete()
+                tempFile.renameTo(badFile)
+                appLogger.logError(Throwable("Ad ${item.id}: SHA mismatch. kept bad file at ${badFile.absolutePath}"))
+            }
         }
+
+        updateItemState(item.id, DownloadState.Failed("Hash/URL mismatch"))
+    }
+
+    /**
+     * Реальность по логам:
+     * - /media/{id} => 404
+     * - /api-media/{id} => 200 application/json (wrapper)
+     *
+     * Значит начинаем с api-media.
+     */
+    private fun buildMediaUrls(assetId: String): List<String> {
+        val base = NetworkConfig.BASE_URL.let { if (it.endsWith('/')) it else "$it/" }
+
+        val apiMedia = "${base}api-media/$assetId"
+        val media = "${base}media/$assetId"
+
+        return listOf(apiMedia, media).distinct()
     }
 
     private fun updateItemState(id: String, state: DownloadState) {
