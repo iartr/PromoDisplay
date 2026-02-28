@@ -16,11 +16,11 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.retrofit)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.retrofit2.kotlinx.serialization.converter)
+    api(libs.okhttp)
+    api(libs.okhttp.logging.interceptor)
+    api(libs.retrofit)
+    api(libs.kotlinx.serialization.json)
+    api(libs.retrofit2.kotlinx.serialization.converter)
 
     implementation(libs.dagger)
     ksp(libs.dagger.compiler)

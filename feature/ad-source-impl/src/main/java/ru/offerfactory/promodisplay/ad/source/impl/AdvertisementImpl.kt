@@ -34,16 +34,13 @@ class AdvertisementImpl @Inject constructor(
         scope.launch(Dispatchers.IO) { handleConfigUpdate() }
     }
 
-    override suspend fun getClips(): Flow<List<AdClip>> = _internalItems
+    override fun getClips(): Flow<List<AdClip>> = _internalItems
         .map { items ->
-            items.filter { it.downloadState is DownloadState.Completed }
-        }
-        .distinctUntilChanged()
-        .map { completedItems ->
-            completedItems
-                .sortedByDescending { it.priority }
+            items
+                .asSequence()
+                .filter { it.downloadState is DownloadState.Completed }
                 .flatMap { item ->
-                    List(item.repeatInCycle) {
+                    (0 until item.repeatInCycle).asSequence().map {
                         AdClip(
                             id = item.id,
                             videoUri = item.asset.localPath,
@@ -51,7 +48,9 @@ class AdvertisementImpl @Inject constructor(
                         )
                     }
                 }
+                .toList()
         }
+        .distinctUntilChanged()
 
     private suspend fun handleConfigUpdate() {
         configManager.getConfig().collectLatest { config ->
@@ -125,7 +124,10 @@ class AdvertisementImpl @Inject constructor(
         )
 
         result.onSuccess {
-            if (adFileValidator.checkValidClips(item.asset)) updateItemState(item.id, DownloadState.Completed)
+            if (adFileValidator.checkValidClips(item.asset)) updateItemState(
+                item.id,
+                DownloadState.Completed
+            )
             else {
                 file.delete()
                 appLogger.logError(Throwable("Hash validation failed for ad ${item.id}"))

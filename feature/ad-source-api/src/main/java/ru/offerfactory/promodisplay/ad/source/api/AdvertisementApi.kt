@@ -4,5 +4,5 @@ import kotlinx.coroutines.flow.Flow
 import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 
 interface AdvertisementApi {
-  suspend fun getClips(): Flow<List<AdClip>>
+    fun getClips(): Flow<List<AdClip>>
 }
