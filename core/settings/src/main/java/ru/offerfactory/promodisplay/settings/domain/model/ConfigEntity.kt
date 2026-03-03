@@ -1,9 +1,11 @@
 package ru.offerfactory.promodisplay.settings.domain.model
 
+import kotlinx.serialization.Serializable
 import ru.offerfactory.promodisplay.settings.domain.model.util.EvictStrategy
 import ru.offerfactory.promodisplay.settings.domain.model.util.FallbackType
 
-data class ConfigEntity (
+@Serializable
+data class ConfigEntity(
     val version: Int,
     val pollIntervalSec: Int,
     val fallback: FallbackInfo,
@@ -12,11 +14,13 @@ data class ConfigEntity (
     val items: List<ConfigItemInfo>
 )
 
+@Serializable
 data class FallbackInfo(
     val type: FallbackType,
     val imageKey: String
 )
 
+@Serializable
 data class DownloadPolicyInfo(
     val maxParallelDownloads: Int,
     val maxRetries: Int,
@@ -24,12 +28,14 @@ data class DownloadPolicyInfo(
     val maxBackoffMs: Long
 )
 
+@Serializable
 data class StoragePolicyInfo(
     val minFreeBytes: Long,
     val evictStrategy: EvictStrategy,
     val pinnedAssetIds: List<String>
 )
 
+@Serializable
 data class ConfigItemInfo(
     val id: String,
     val priority: Int,
@@ -37,6 +43,7 @@ data class ConfigItemInfo(
     val asset: AssetInfo,
 )
 
+@Serializable
 data class AssetInfo(
     val mimeType: String,
     val sizeBytes: Long,

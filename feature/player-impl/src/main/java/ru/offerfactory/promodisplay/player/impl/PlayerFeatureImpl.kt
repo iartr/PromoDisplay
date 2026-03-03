@@ -15,4 +15,12 @@ internal class PlayerFeatureImpl(
     override fun detach() {
         engine.detach()
     }
+
+    override fun resumePlayback() {
+        engine.resumePlayback()
+    }
+
+    override fun pausePlayback() {
+        engine.pausePlayback()
+    }
 }

@@ -1,6 +1,8 @@
 package ru.offerfactory.promodisplay.player.impl
 
 import android.content.Context
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -10,6 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.offerfactory.promodisplay.player.api.model.Clip
@@ -22,13 +26,20 @@ internal class PlayerEngine(
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     private var attachJob: Job? = null
-    private var _player: ExoPlayer? = null
 
-    // Чтобы не пересобирать плейлист без причины
-    private var currentPlaylistKeys: List<String> = emptyList()
+    private val _playerState = MutableStateFlow<ExoPlayer?>(null)
+    val playerState: StateFlow<ExoPlayer?> = _playerState
 
     val player: ExoPlayer?
-        get() = _player
+        get() = _playerState.value
+
+    /**
+     * Ключи текущего плейлиста (стабильные, с учетом repeatInCycle через occurrence).
+     * Нужны, чтобы:
+     * 1) не пересобирать плейлист без причины
+     * 2) уметь делать append через addMediaItems без reset/prepare (фикс мерцания)
+     */
+    private var currentPlaylistKeys: List<String> = emptyList()
 
     fun attach(clipsFlow: Flow<List<Clip>>) {
         attachJob?.cancel()
@@ -46,12 +57,37 @@ internal class PlayerEngine(
         releasePlayer()
     }
 
+    /**
+     * Вызывать из MainActivity.onStart()/onResume(), чтобы после screen off/on
+     * воспроизведение сразу продолжалось.
+     *
+     */
+    fun resumePlayback() {
+        val exo = _playerState.value ?: return
+
+        if (exo.playbackState == Player.STATE_ENDED) {
+            exo.seekToDefaultPosition()
+        }
+
+        if (exo.playbackState == Player.STATE_IDLE) {
+            exo.prepare()
+        }
+
+        exo.playWhenReady = true
+
+        if (!exo.isPlaying) {
+            exo.play()
+        }
+    }
+
+    fun pausePlayback() {
+        _playerState.value?.pause()
+    }
+
     private fun applyPlaylist(clips: List<Clip>) {
-        // Воспроизводим только готовые клипы с непустым uri/path
         val playable = clips.filter { it.isReady && !it.videoUri.isNullOrBlank() }
 
         if (playable.isEmpty()) {
-            // Нет готовых клипов — останавливаем и освобождаем ресурсы
             currentPlaylistKeys = emptyList()
             releasePlayer()
             return
@@ -59,29 +95,43 @@ internal class PlayerEngine(
 
         val exo = ensurePlayer()
 
-        // Сохраняем текущее положение ДО замены списка
         val oldMediaId = exo.currentMediaItem?.mediaId
         val oldPositionMs = exo.currentPosition
         val oldIndex = exo.currentMediaItemIndex
 
-        // Собираем MediaItem’ы с ключами вида "clipId#occurrence"
         val (mediaItems, newKeys) = buildMediaItemsWithStableKeys(playable)
 
-        // Если плейлист по сути не изменился — ничего не делаем (без дёрганья)
+        // 1) Ничего не изменилось — вообще не трогаем pipeline
         if (newKeys == currentPlaylistKeys && exo.mediaItemCount == mediaItems.size) {
-            // На всякий случай убеждаемся, что луп и autoplay включены
             exo.repeatMode = Player.REPEAT_MODE_ALL
             if (!exo.playWhenReady) exo.playWhenReady = true
             return
         }
 
+        // Если новый плейлист является расширением старого (старое = префикс нового),
+        // значит у нас "докачались/стали готовы" новые клипы и список подрос.
+        if (currentPlaylistKeys.isNotEmpty()
+            && newKeys.size > currentPlaylistKeys.size
+            && newKeys.startsWithPrefix(currentPlaylistKeys)
+        ) {
+            val appendFrom = currentPlaylistKeys.size
+            val toAppend = mediaItems.subList(appendFrom, mediaItems.size)
+
+            exo.addMediaItems(toAppend)
+            currentPlaylistKeys = newKeys
+
+            exo.repeatMode = Player.REPEAT_MODE_ALL
+            if (exo.playbackState == Player.STATE_IDLE) {
+                exo.prepare()
+            }
+            if (!exo.playWhenReady) exo.playWhenReady = true
+            return
+        }
+
+        // 3) Иначе — реальное изменение (порядок/удаление/сильный reset).
+        // Тут придётся пересобирать плейлист.
         currentPlaylistKeys = newKeys
 
-        // Выбираем откуда продолжать:
-        // 1) точное совпадение oldMediaId (лучший вариант)
-        // 2) совпадение по clipId (если схема mediaId раньше была другая)
-        // 3) fallback на старый индекс
-        // 4) иначе 0
         val resolved = resolveStart(
             oldMediaId = oldMediaId,
             oldIndex = oldIndex,
@@ -110,26 +160,27 @@ internal class PlayerEngine(
     ): StartResolution {
         if (newKeys.isEmpty()) return StartResolution(startIndex = 0, keepPosition = false)
 
-        // 1) точное совпадение mediaId
         if (!oldMediaId.isNullOrBlank()) {
             val exactIdx = newKeys.indexOf(oldMediaId)
             if (exactIdx >= 0) return StartResolution(startIndex = exactIdx, keepPosition = true)
 
-            // 2) совпадение по clipId (на случай если раньше mediaId был просто id)
             val oldClipId = oldMediaId.substringBefore('#')
             val byIdIdx = newKeys.indexOfFirst { it.substringBefore('#') == oldClipId }
             if (byIdIdx >= 0) return StartResolution(startIndex = byIdIdx, keepPosition = true)
         }
 
-        // 3) fallback на индекс
         if (oldIndex in newKeys.indices) {
             return StartResolution(startIndex = oldIndex, keepPosition = false)
         }
 
-        // 4) дефолт
         return StartResolution(startIndex = 0, keepPosition = false)
     }
 
+    /**
+     * Делаем стабильные mediaId ключи (id#occurrence) чтобы:
+     * - одинаковые клипы при repeatInCycle имели разные mediaId
+     * - можно было правильно резолвить текущий клип при обновлениях
+     */
     private fun buildMediaItemsWithStableKeys(clips: List<Clip>): Pair<List<MediaItem>, List<String>> {
         val counters = HashMap<String, Int>(clips.size)
         val items = ArrayList<MediaItem>(clips.size)
@@ -144,7 +195,7 @@ internal class PlayerEngine(
             val uri = ClipUri.toUri(clip.videoUri!!)
 
             val mediaItem = MediaItem.Builder()
-                .setMediaId(key) // ключ для стабильного восстановления позиции
+                .setMediaId(key)
                 .setUri(uri)
                 .build()
 
@@ -156,19 +207,36 @@ internal class PlayerEngine(
     }
 
     private fun ensurePlayer(): ExoPlayer {
-        val existing = _player
+        val existing = _playerState.value
         if (existing != null) return existing
 
         val created = ExoPlayer.Builder(appContext).build().apply {
             repeatMode = Player.REPEAT_MODE_ALL
             playWhenReady = true
+
+            val attrs = AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build()
+
+            // handleAudioFocus=true важно для “после screen off/on не стоит на паузе”
+            setAudioAttributes(attrs, /* handleAudioFocus= */ true)
         }
-        _player = created
+
+        _playerState.value = created
         return created
     }
 
     private fun releasePlayer() {
-        _player?.release()
-        _player = null
+        _playerState.value?.release()
+        _playerState.value = null
+    }
+
+    private fun List<String>.startsWithPrefix(prefix: List<String>): Boolean {
+        if (prefix.size > size) return false
+        for (i in prefix.indices) {
+            if (this[i] != prefix[i]) return false
+        }
+        return true
     }
 }

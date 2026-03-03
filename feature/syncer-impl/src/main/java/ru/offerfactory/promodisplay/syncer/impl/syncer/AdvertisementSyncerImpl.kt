@@ -3,6 +3,7 @@ package ru.offerfactory.promodisplay.syncer.impl.syncer
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -18,32 +19,37 @@ class AdvertisementSyncerImpl @Inject constructor(
     override fun schedulePeriodicSync() {
         val workManager = WorkManager.getInstance(context)
 
-        val configFetchOnStartup = OneTimeWorkRequestBuilder<SyncAdvertisementWorker>()
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            )
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val periodicalConfigFetch = PeriodicWorkRequestBuilder<SyncAdvertisementWorker>(
+        // One-time синк на старте — делаем unique, чтобы не плодить воркеры.
+        val configFetchOnStartup = OneTimeWorkRequestBuilder<SyncAdvertisementWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        val periodicConfigFetch = PeriodicWorkRequestBuilder<SyncAdvertisementWorker>(
             30,
             TimeUnit.MINUTES
         )
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
+            .setConstraints(constraints)
             .build()
 
-        workManager.enqueue(configFetchOnStartup)
+        workManager.enqueueUniqueWork(
+            ADVERTISEMENT_CONFIG_SYNC_STARTUP_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            configFetchOnStartup
+        )
+
         workManager.enqueueUniquePeriodicWork(
-            ADVERTISEMENT_CONFIG_SYNC_WORK_NAME,
+            ADVERTISEMENT_CONFIG_SYNC_PERIODIC_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
-            periodicalConfigFetch
+            periodicConfigFetch
         )
     }
 
     private companion object {
-        const val ADVERTISEMENT_CONFIG_SYNC_WORK_NAME = "advertisement_config_sync"
+        const val ADVERTISEMENT_CONFIG_SYNC_STARTUP_WORK_NAME = "advertisement_config_sync_startup"
+        const val ADVERTISEMENT_CONFIG_SYNC_PERIODIC_WORK_NAME = "advertisement_config_sync_periodic"
     }
 }
