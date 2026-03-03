@@ -1,7 +1,6 @@
 package ru.offerfactory.promodisplay.player.impl
 
 import android.content.Context
-import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -118,8 +117,6 @@ internal class PlayerEngine(
             val appendFrom = currentPlaylistKeys.size
             val toAppend = mediaItems.subList(appendFrom, mediaItems.size)
 
-            Log.d(TAG, "Playlist expanded: +${toAppend.size} items (append only)")
-
             exo.addMediaItems(toAppend)
             currentPlaylistKeys = newKeys
 
@@ -144,8 +141,6 @@ internal class PlayerEngine(
         val startIndex = resolved.startIndex
         val keepPosition = resolved.keepPosition
         val startPositionMs = if (keepPosition) oldPositionMs.coerceAtLeast(0L) else 0L
-
-        Log.d(TAG, "Playlist reset: count=${mediaItems.size}, startIndex=$startIndex, keepPos=$keepPosition")
 
         exo.setMediaItems(mediaItems, startIndex, startPositionMs)
         exo.repeatMode = Player.REPEAT_MODE_ALL
@@ -229,14 +224,12 @@ internal class PlayerEngine(
         }
 
         _playerState.value = created
-        Log.d(TAG, "ExoPlayer created")
         return created
     }
 
     private fun releasePlayer() {
         _playerState.value?.release()
         _playerState.value = null
-        Log.d(TAG, "ExoPlayer released")
     }
 
     private fun List<String>.startsWithPrefix(prefix: List<String>): Boolean {
@@ -245,9 +238,5 @@ internal class PlayerEngine(
             if (this[i] != prefix[i]) return false
         }
         return true
-    }
-
-    private companion object {
-        const val TAG = "PlayerEngine"
     }
 }

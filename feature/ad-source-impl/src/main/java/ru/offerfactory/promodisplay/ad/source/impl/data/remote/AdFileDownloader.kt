@@ -95,12 +95,13 @@ class AdFileDownloader @Inject constructor(
                 // КЛЮЧЕВОЕ: сервер отдаёт JSON (wrapper), а не видео
                 if (contentType.lowercase().contains("application/json")) {
                     val jsonText = body.string()
-                    val snippet = jsonText.take(300)
+                    val snippet = jsonText.take(JSON_SNIPPET_MAX_CHARS)
                     appLogger.logEvent("AdFileDownloader: json wrapper for url=$url bodySnippet=$snippet")
 
                     val extractedUrl = extractFirstHttpUrlFromJson(jsonText)
                     if (extractedUrl.isNullOrBlank()) {
-                        val msg = "JSON wrapper didn't contain downloadable url. url=$url bodySnippet=$snippet"
+                        val msg =
+                            "JSON wrapper didn't contain downloadable url. url=$url bodySnippet=$snippet"
                         appLogger.logError(Throwable(msg))
                         return@withContext Result.failure(Exception(msg))
                     }
@@ -169,6 +170,7 @@ class AdFileDownloader @Inject constructor(
                 }
                 null
             }
+
             is JSONArray -> {
                 for (i in 0 until value.length()) {
                     val found = findFirstHttpUrl(value.opt(i))
@@ -176,13 +178,18 @@ class AdFileDownloader @Inject constructor(
                 }
                 null
             }
+
             is String -> {
                 val s = value.trim()
                 if (s.startsWith("http://") || s.startsWith("https://")) s else null
             }
+
             else -> null
         }
     }
 
     private class JsonWrapperException(val resolvedUrl: String) : RuntimeException("JSON_WRAPPER")
+    private companion object {
+        private const val JSON_SNIPPET_MAX_CHARS = 300
+    }
 }
