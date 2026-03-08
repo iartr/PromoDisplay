@@ -7,7 +7,7 @@ import ru.offerfactory.promodisplay.settings.domain.model.util.FallbackType
 @Serializable
 data class ConfigEntity(
     val version: Int,
-    val pollIntervalSec: Int,
+    val pollIntervalSec: Long,
     val fallback: FallbackInfo,
     val downloadPolicy: DownloadPolicyInfo,
     val storagePolicy: StoragePolicyInfo,

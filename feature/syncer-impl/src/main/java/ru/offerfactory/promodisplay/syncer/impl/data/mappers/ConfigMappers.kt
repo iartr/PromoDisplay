@@ -22,7 +22,7 @@ class ConfigMappers {
     fun ConfigDto.toDomain(): ConfigEntity =
         ConfigEntity(
             version = configVersion,
-            pollIntervalSec = pollIntervalSec,
+            pollIntervalSec = pollIntervalSec.toLong(),
             fallback = FallbackInfo(
                 type = fallback.type.toFallbackType(),
                 imageKey = fallback.imageKey
