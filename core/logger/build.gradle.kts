@@ -41,6 +41,10 @@ dependencies {
     implementation(libs.dagger)
     ksp(libs.dagger.compiler)
 
+    implementation(platform(libs.tracer.platform))
+    implementation(libs.tracer.crash.report)
+    implementation(libs.tracer.crash.report.native)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
