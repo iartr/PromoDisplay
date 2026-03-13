@@ -85,12 +85,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        // Если на устройстве экран выключили/приложение ушло в фон — ставим паузу.
-        // (Если захочешь, чтобы в фоне продолжало играть — убери эту строку.)
         playerApi.feature().pausePlayback()
-
         unregisterReceiver(screenReceiver)
-
         super.onStop()
     }
 
@@ -108,20 +104,18 @@ private fun PromoDisplayRoot(
     playerApi: PlayerApi,
     advertisementApi: AdvertisementApi
 ) {
-    // Получаем один Flow клипов на весь срок жизни композиции
     val clipsFlow = remember(advertisementApi) { advertisementApi.getClips() }
+    val progressFlow =
+        remember(advertisementApi) { advertisementApi.getFirstClipDownloadProgress() }
 
-    // Только для fallback UI
     val clips by clipsFlow.collectAsState(initial = emptyList())
+    val progress by progressFlow.collectAsState(initial = 0)
 
-    // attach/detach выполняются строго один раз на жизненный цикл этого composable.
     DisposableEffect(playerApi, clipsFlow) {
         playerApi.feature().attach(clipsFlow)
         onDispose { playerApi.feature().detach() }
     }
 
-    // Если клипы появились/обновились — пробуем гарантированно запустить проигрывание.
-    // Это полезно в кейсах, когда плеер был создан раньше, но play не начался из-за lifecycle/focus.
     LaunchedEffect(clips.size) {
         if (clips.isNotEmpty()) {
             playerApi.feature().resumePlayback()
@@ -132,19 +126,25 @@ private fun PromoDisplayRoot(
         playerApi.screen().Content(modifier = Modifier.fillMaxSize())
 
         if (clips.isEmpty()) {
-            FallbackOverlay(modifier = Modifier.fillMaxSize())
+            FallbackOverlay(
+                modifier = Modifier.fillMaxSize(),
+                progress = progress.coerceIn(0, 100)
+            )
         }
     }
 }
 
 @Composable
-private fun FallbackOverlay(modifier: Modifier = Modifier) {
+private fun FallbackOverlay(
+    modifier: Modifier = Modifier,
+    progress: Int
+) {
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Загрузка роликов…",
+            text = "Загружаем ролики $progress%",
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White
         )
