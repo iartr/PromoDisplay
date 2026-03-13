@@ -5,4 +5,6 @@ import ru.offerfactory.promodisplay.ad.source.api.domain.models.AdClip
 
 interface AdvertisementApi {
     fun getClips(): Flow<List<AdClip>>
+
+    fun getFirstClipDownloadProgress(): Flow<Int>
 }

@@ -62,6 +62,18 @@ class AdvertisementImpl @Inject constructor(
         }
         .distinctUntilChanged()
 
+    override fun getFirstClipDownloadProgress(): Flow<Int> = _internalItems
+        .map { items ->
+            val first = items.firstOrNull() ?: return@map 0
+            when (val st = first.downloadState) {
+                is DownloadState.Downloading -> st.progress.coerceIn(0, 100)
+                is DownloadState.Completed -> 100
+                is DownloadState.Pending -> 0
+                is DownloadState.Failed -> 0
+            }
+        }
+        .distinctUntilChanged()
+
     private suspend fun handleConfigUpdate() {
         configManager.getConfig().collectLatest { config ->
             appLogger.logEvent("Received config: version ${config?.version}, items: ${config?.items?.size ?: 0}")
