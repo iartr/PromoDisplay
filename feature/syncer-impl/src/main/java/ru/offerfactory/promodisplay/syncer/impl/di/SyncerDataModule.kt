@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.Module
 import dagger.Provides
 import retrofit2.Retrofit
+import ru.offerfactory.promodisplay.logger.AppLogger
 import ru.offerfactory.promodisplay.settings.ConfigManager
 import ru.offerfactory.promodisplay.syncer.AdvertisementSyncer
 import ru.offerfactory.promodisplay.syncer.impl.data.mappers.ConfigMappers
@@ -31,9 +32,10 @@ class SyncerDataModule {
     @Singleton
     fun provideConfigRepository(
         api: ConfigApi,
-        mappers: ConfigMappers
+        mappers: ConfigMappers,
+        appLogger: AppLogger
     ): ConfigRepository =
-        ConfigRepositoryImpl(api, mappers)
+        ConfigRepositoryImpl(api, mappers, appLogger)
 
     @Provides
     @Singleton

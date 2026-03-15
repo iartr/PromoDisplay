@@ -25,13 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
-import ru.offerfactory.promodisplay.auto_boot.AdminReceiver
+import ru.offerfactory.promodisplay.auto.boot.AdminReceiver
 import ru.offerfactory.promodisplay.player.api.PlayerApi
 import ru.offerfactory.promodisplay.ui.theme.PromoDisplayTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val appComponent by lazy { (application as ru.offerfactory.promodisplay.Application).appComponent }
+    private val appComponent by lazy { (application as Application).appComponent }
 
     private val playerApi: PlayerApi by lazy { appComponent.playerApi() }
     private val advertisementApi: AdvertisementApi by lazy { appComponent.advertisementApi() }

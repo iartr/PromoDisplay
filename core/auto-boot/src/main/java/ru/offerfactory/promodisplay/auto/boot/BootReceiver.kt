@@ -1,4 +1,4 @@
-package ru.offerfactory.promodisplay.auto_boot
+package ru.offerfactory.promodisplay.auto.boot
 
 import android.content.BroadcastReceiver
 import android.content.Context

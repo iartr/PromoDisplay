@@ -39,6 +39,7 @@ android {
 dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:settings"))
+    implementation(project(":core:logger"))
     implementation(project(":feature:syncer-api"))
 
     implementation(libs.kotlinx.coroutines.core)

@@ -7,7 +7,7 @@ data class ConfigDto(
     val configVersion: Int,
     val generatedAt: String,
     val serverTime: String,
-    val pollIntervalSec: Int,
+    val pollIntervalSec: Long,
     val fallback: FallbackDto,
     val downloadPolicy: DownloadPolicyDto,
     val storagePolicy: StoragePolicyDto,

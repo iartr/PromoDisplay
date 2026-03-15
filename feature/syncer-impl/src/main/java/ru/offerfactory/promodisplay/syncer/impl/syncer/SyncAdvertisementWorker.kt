@@ -66,7 +66,7 @@ class SyncAdvertisementWorker(
             .getInstance(applicationContext)
             .enqueueUniqueWork(
                 PERIODIC_SYNC_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.KEEP,
                 nextWork
             )
     }

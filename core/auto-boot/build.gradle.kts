@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.offerfactory.promodisplay.auto_boot"
+    namespace = "ru.offerfactory.promodisplay.auto.boot"
     compileSdk = 36
 
     defaultConfig {

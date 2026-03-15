@@ -1,4 +1,4 @@
-package ru.offerfactory.promodisplay.auto_boot
+package ru.offerfactory.promodisplay.auto.boot
 
 import android.app.admin.DeviceAdminReceiver
 import android.content.ComponentName
