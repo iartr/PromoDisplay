@@ -65,8 +65,8 @@ class AdvertisementImpl @Inject constructor(
     override fun getFirstClipDownloadProgress(): Flow<Int> = _internalItems
         .map { items ->
             val first = items.firstOrNull() ?: return@map 0
-            when (val st = first.downloadState) {
-                is DownloadState.Downloading -> st.progress.coerceIn(0, 100)
+            when (val state = first.downloadState) {
+                is DownloadState.Downloading -> state.progress.coerceIn(0, 100)
                 is DownloadState.Completed -> 100
                 is DownloadState.Pending -> 0
                 is DownloadState.Failed -> 0
@@ -86,6 +86,8 @@ class AdvertisementImpl @Inject constructor(
             val updatedList = config.items
                 .map { remote ->
                     val finalFile = storage.getFileForId(remote.id)
+                    val sizeOk = finalFile.exists() && finalFile.length() == remote.asset.sizeBytes
+                    val initialState = if (sizeOk) DownloadState.Completed else DownloadState.Pending
 
                     AdItem(
                         id = remote.id,
@@ -100,7 +102,7 @@ class AdvertisementImpl @Inject constructor(
                             supportsRange = remote.asset.supportsRange,
                             localPath = finalFile.absolutePath
                         ),
-                        downloadState = DownloadState.Pending
+                        downloadState = initialState
                     )
                 }
                 .sortedByDescending { it.priority }
@@ -130,83 +132,110 @@ class AdvertisementImpl @Inject constructor(
         }
 
         val finalFile = File(finalPath)
+        val tempFile = storage.getTempFileForId(item.id)
+        val badFile = storage.getBadFileForId(item.id)
 
         if (finalFile.exists()) {
             val isValid = adFileValidator.checkValidClips(item.asset)
             if (isValid) {
                 updateItemState(item.id, DownloadState.Completed)
                 return
-            } else {
-                finalFile.delete()
             }
+
+            finalFile.delete()
         }
 
-        updateItemState(item.id, DownloadState.Downloading(0))
-
-        val tempFile = File(finalFile.parentFile, "${finalFile.name}.tmp")
-        val badFile = File(finalFile.parentFile, "${finalFile.nameWithoutExtension}.bad.${finalFile.extension}")
-
-        if (tempFile.exists()) tempFile.delete()
-        if (badFile.exists()) badFile.delete()
-
-        val urls = buildMediaUrls(item.id)
-
-        for ((index, url) in urls.withIndex()) {
-            appLogger.logEvent("Ad ${item.id}: download try ${index + 1}/${urls.size} url=$url")
-
-            val result = downloader.download(
-                url = url,
-                file = tempFile,
-                expectedSize = item.asset.sizeBytes,
-                onProgress = { progress ->
-                    updateItemState(item.id, DownloadState.Downloading(progress.coerceIn(0, 100)))
-                }
-            )
-
-            if (result.isFailure) {
-                // downloader сам логирует детально (404/JSON wrapper/и т.д.)
-                continue
-            }
-
+        if (tempFile.exists() && tempFile.length() == item.asset.sizeBytes) {
             val tempAsset = item.asset.copy(localPath = tempFile.absolutePath)
-            val isValid = adFileValidator.checkValidClips(tempAsset)
-
-            if (isValid) {
-                if (finalFile.exists()) finalFile.delete()
-
-                val renamed = tempFile.renameTo(finalFile)
-                if (!renamed) {
-                    tempFile.copyTo(finalFile, overwrite = true)
-                    tempFile.delete()
-                }
-
-                appLogger.logEvent("Ad ${item.id}: downloaded + validated OK. saved to ${finalFile.absolutePath}")
+            val isTempValid = adFileValidator.checkValidClips(tempAsset)
+            if (isTempValid) {
+                promoteTempFile(tempFile = tempFile, finalFile = finalFile)
                 updateItemState(item.id, DownloadState.Completed)
                 return
-            } else {
-                if (badFile.exists()) badFile.delete()
-                tempFile.renameTo(badFile)
-                appLogger.logError(Throwable("Ad ${item.id}: SHA mismatch. kept bad file at ${badFile.absolutePath}"))
             }
+
+            if (badFile.exists()) badFile.delete()
+            tempFile.renameTo(badFile)
         }
 
-        updateItemState(item.id, DownloadState.Failed("Hash/URL mismatch"))
+        if (!item.asset.supportsRange && tempFile.exists()) {
+            tempFile.delete()
+        }
+
+        if (tempFile.exists() && tempFile.length() > item.asset.sizeBytes) {
+            tempFile.delete()
+        }
+
+        if (badFile.exists()) {
+            badFile.delete()
+        }
+
+        val existingTempBytes = tempFile.takeIf { it.exists() }?.length() ?: 0L
+        val initialProgress = if (item.asset.sizeBytes > 0L) {
+            ((existingTempBytes * 100) / item.asset.sizeBytes).toInt().coerceIn(0, 100)
+        } else {
+            0
+        }
+        updateItemState(item.id, DownloadState.Downloading(initialProgress))
+
+        val apiMediaUrl = buildApiMediaUrl(item.id)
+        appLogger.logEvent("Ad ${item.id}: start api-media resolve url=$apiMediaUrl")
+
+        val result = downloader.download(
+            apiMediaUrl = apiMediaUrl,
+            file = tempFile,
+            expectedSize = item.asset.sizeBytes,
+            supportsRange = item.asset.supportsRange,
+            onProgress = { downloadedBytes, totalBytes ->
+                val progress = if (totalBytes > 0L) {
+                    ((downloadedBytes * 100) / totalBytes).toInt()
+                } else {
+                    0
+                }
+
+                updateItemState(
+                    item.id,
+                    DownloadState.Downloading(progress.coerceIn(0, 100))
+                )
+            }
+        )
+
+        if (result.isFailure) {
+            val error = result.exceptionOrNull()?.message ?: "Download failed"
+            appLogger.logError(Throwable("Ad ${item.id}: download failed: $error"))
+            updateItemState(item.id, DownloadState.Failed(error))
+            return
+        }
+
+        val tempAsset = item.asset.copy(localPath = tempFile.absolutePath)
+        val isValid = adFileValidator.checkValidClips(tempAsset)
+
+        if (isValid) {
+            promoteTempFile(tempFile = tempFile, finalFile = finalFile)
+            appLogger.logEvent("Ad ${item.id}: downloaded + validated OK. saved to ${finalFile.absolutePath}")
+            updateItemState(item.id, DownloadState.Completed)
+            return
+        }
+
+        if (badFile.exists()) badFile.delete()
+        tempFile.renameTo(badFile)
+        appLogger.logError(Throwable("Ad ${item.id}: SHA mismatch. kept bad file at ${badFile.absolutePath}"))
+        updateItemState(item.id, DownloadState.Failed("Hash mismatch"))
     }
 
-    /**
-     * Реальность по логам:
-     * - /media/{id} => 404
-     * - /api-media/{id} => 200 application/json (wrapper)
-     *
-     * Значит начинаем с api-media.
-     */
-    private fun buildMediaUrls(assetId: String): List<String> {
+    private fun buildApiMediaUrl(assetId: String): String {
         val base = NetworkConfig.BASE_URL.let { if (it.endsWith('/')) it else "$it/" }
+        return "${base}api-media/$assetId"
+    }
 
-        val apiMedia = "${base}api-media/$assetId"
-        val media = "${base}media/$assetId"
+    private fun promoteTempFile(tempFile: File, finalFile: File) {
+        if (finalFile.exists()) finalFile.delete()
 
-        return listOf(apiMedia, media).distinct()
+        val renamed = tempFile.renameTo(finalFile)
+        if (!renamed) {
+            tempFile.copyTo(finalFile, overwrite = true)
+            tempFile.delete()
+        }
     }
 
     private fun updateItemState(id: String, state: DownloadState) {

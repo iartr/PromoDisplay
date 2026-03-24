@@ -9,19 +9,28 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import ru.offerfactory.promodisplay.network.domain.util.NetworkConfig
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 class NetworkModule {
     @Provides
     @Singleton
-    fun provideOkHttpClient() = OkHttpClient.Builder()
-        .addInterceptor(
-            HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-        )
-        .build()
+    fun provideOkHttpClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(90, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    // BODY для видео здесь ломает range-download:
+                    // логгер сам пытается дочитать бинарный body и ловит timeout.
+                    level = HttpLoggingInterceptor.Level.HEADERS
+                }
+            )
+            .build()
 
     @Provides
     @Singleton

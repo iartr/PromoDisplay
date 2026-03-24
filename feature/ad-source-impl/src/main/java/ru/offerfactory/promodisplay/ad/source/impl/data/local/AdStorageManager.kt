@@ -16,10 +16,38 @@ class AdStorageManager @Inject constructor(
 
     fun getFileForId(id: String): File = File(adsDir, "$id.${AdConstants.AD_FILE_EXTENSION}")
 
+    fun getTempFileForId(id: String): File =
+        File(adsDir, "$id.${AdConstants.AD_FILE_EXTENSION}${AdConstants.TEMP_FILE_SUFFIX}")
+
+    fun getBadFileForId(id: String): File =
+        File(adsDir, "$id${AdConstants.BAD_FILE_INFIX}.${AdConstants.AD_FILE_EXTENSION}")
+
     fun cleanupOldFiles(activeIds: Set<String>) {
         adsDir.listFiles()?.forEach { file ->
-            val id = file.nameWithoutExtension
-            if (id !in activeIds) file.delete()
+            val assetId = resolveAssetId(file)
+
+            if (assetId == null) {
+                file.delete()
+                return@forEach
+            }
+
+            if (assetId !in activeIds) {
+                file.delete()
+            }
         } ?: appLogger.logError(Throwable("Failed to list files in ads directory"))
+    }
+
+    private fun resolveAssetId(file: File): String? {
+        val name = file.name
+        val extensionSuffix = ".${AdConstants.AD_FILE_EXTENSION}"
+        val tempSuffix = "$extensionSuffix${AdConstants.TEMP_FILE_SUFFIX}"
+        val badSuffix = "${AdConstants.BAD_FILE_INFIX}$extensionSuffix"
+
+        return when {
+            name.endsWith(tempSuffix) -> name.removeSuffix(tempSuffix)
+            name.endsWith(badSuffix) -> name.removeSuffix(badSuffix)
+            name.endsWith(extensionSuffix) -> name.removeSuffix(extensionSuffix)
+            else -> null
+        }
     }
 }
