@@ -25,10 +25,7 @@ val featureDir = "feature"
 
 include(":app")
 
-addCoreModule("ui")
 addCoreModule("settings")
-addCoreModule("remote-config")
-addCoreModule("navigation")
 addCoreModule("network")
 addCoreModule("logger")
 addCoreModule("analytics")

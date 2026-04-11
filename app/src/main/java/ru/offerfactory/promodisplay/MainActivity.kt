@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import ru.offerfactory.promodisplay.ad.source.api.AdvertisementApi
 import ru.offerfactory.promodisplay.auto.boot.AdminReceiver
 import ru.offerfactory.promodisplay.player.api.PlayerApi
@@ -31,10 +32,15 @@ import ru.offerfactory.promodisplay.ui.theme.PromoDisplayTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val appComponent by lazy { (application as Application).appComponent }
-
-    private val playerApi: PlayerApi by lazy { appComponent.playerApi() }
-    private val advertisementApi: AdvertisementApi by lazy { appComponent.advertisementApi() }
+    private val appComponent by lazy {
+        (application as Application).appComponent
+    }
+    private val playerApi: PlayerApi by lazy {
+        appComponent.playerApi()
+    }
+    private val advertisementApi: AdvertisementApi by lazy {
+        appComponent.advertisementApi()
+    }
 
     // Страховка на случай, если конкретная ТВ-прошивка “просыпается” без ожидаемого пайплайна lifecycle.
     private val screenReceiver = object : BroadcastReceiver() {
@@ -139,12 +145,14 @@ private fun FallbackOverlay(
     modifier: Modifier = Modifier,
     progress: Int
 ) {
+    val text = stringResource(R.string.uploading_clips, progress)
+
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Загружаем ролики $progress%",
+            text = text,
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White
         )

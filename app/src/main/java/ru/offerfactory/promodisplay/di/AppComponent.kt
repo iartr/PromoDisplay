@@ -22,35 +22,26 @@ import javax.inject.Singleton
     modules = [
         AppModule::class,
         LoggerModule::class,
-
-        // чтобы ad-source и syncer получили OkHttp/Retrofit/Json
         NetworkModule::class,
-
-        // чтобы syncer/ad-source слушали и обновляли конфиг
         SettingsModule::class,
-
-        // чтобы работал WorkManager WorkerFactory + scheduling синка
         SyncerDataModule::class,
-
-        // чтобы AdvertisementApi реально создался и отдавал клипы
         AdSourceModule::class,
         AdSourceRuntimeModule::class,
-
-        // чтобы PlayerApi получался из DI
         PlayerModule::class
     ]
 )
 interface AppComponent {
 
     fun workManager(): WorkManager
-    fun logger(): AppLogger
 
-    // WorkManager
+    fun appLogger(): AppLogger
+
     fun syncWorkerFactory(): SyncWorkerFactory
+
     fun advertisementSyncer(): AdvertisementSyncer
 
-    // Data/Player
     fun advertisementApi(): AdvertisementApi
+
     fun playerApi(): PlayerApi
 
     @Component.Factory
