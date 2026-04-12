@@ -20,21 +20,20 @@ import java.util.Locale
 class FileLoggingTree(
     context: Context,
     private val minPriority: Int = Log.WARN,
-    private val dirName: String = "logs",
-    private val fileName: String = "promodisplayLogs",
     private val maxTotalBytes: Long = 50L * 1024 * 1024,
     private val keepRatio: Double = 0.8
 ) : Timber.Tree() {
 
     private val appContext = context.applicationContext
-    private val logDir: File = File(appContext.filesDir, dirName).apply { mkdirs() }
-    private val file = File(logDir, "${fileName}.log")
+    private val logDir: File =
+        File(appContext.filesDir, Constants.DIRECTORY_NAME).apply { mkdirs() }
+    private val file = File(logDir, "${Constants.FILE_NAME}.log")
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val mutex = Mutex()
 
     private val timeFormatter = SimpleDateFormat(
-        "yyyy-MM-dd HH:mm:ss.SSS",
+        Constants.TIME_FORMATTER_PATTERN,
         Locale.getDefault()
     )
 
@@ -46,7 +45,6 @@ class FileLoggingTree(
 
         scope.launch {
             mutex.withLock {
-
                 val line = buildString {
                     append(timeFormatter.format(Date()))
                     append(" ")
@@ -76,7 +74,7 @@ class FileLoggingTree(
 
     private fun trimToLimit(file: File) {
         val keepBytes = (maxTotalBytes * keepRatio).toLong().coerceAtLeast(1024 * 1024)
-        RandomAccessFile(file, "rw").use { raf ->
+        RandomAccessFile(file, Constants.FILE_RIGHTS_MODE).use { raf ->
             val len = raf.length()
             if (len <= maxTotalBytes) return
 
@@ -97,7 +95,6 @@ class FileLoggingTree(
         }
     }
 
-
     private fun appendLineToFile(file: File, line: String) {
         FileOutputStream(file, true).use { fos ->
             OutputStreamWriter(fos, Charsets.UTF_8).use { w ->
@@ -105,7 +102,6 @@ class FileLoggingTree(
             }
         }
     }
-
 
     private fun priorityToShort(priority: Int): String {
         return when (priority) {
@@ -118,6 +114,4 @@ class FileLoggingTree(
             else -> "?"
         }
     }
-
-
 }

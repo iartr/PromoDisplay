@@ -69,10 +69,7 @@ tracer {
 }
 
 dependencies {
-    implementation(project(":core:ui"))
-    implementation(project(":core:remote-config"))
     implementation(project(":core:settings"))
-    implementation(project(":core:navigation"))
     implementation(project(":core:network"))
     implementation(project(":core:logger"))
     implementation(project(":core:analytics"))

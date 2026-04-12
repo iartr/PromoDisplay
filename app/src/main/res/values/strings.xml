@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PromoDisplay</string>
+    <string name="uploading_clips">Загружаем ролики %s%%</string>
 </resources>

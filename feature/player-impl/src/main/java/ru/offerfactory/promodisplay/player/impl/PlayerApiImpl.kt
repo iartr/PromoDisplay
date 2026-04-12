@@ -10,5 +10,6 @@ internal class PlayerApiImpl(
 ) : PlayerApi {
 
     override fun feature(): PlayerFeature = feature
+
     override fun screen(): PlayerScreen = screen
 }

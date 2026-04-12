@@ -27,7 +27,6 @@ class Application : Application(), HasTracerConfiguration, Configuration.Provide
         // 1) он начал слушать config DataStore
         // 2) при появлении конфигурации — сразу начал качать файлы
         appComponent.advertisementApi()
-
         appComponent.advertisementSyncer().schedulePeriodicSync()
     }
 

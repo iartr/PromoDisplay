@@ -7,9 +7,7 @@ import ru.offerfactory.promodisplay.settings.ConfigManagerImpl
 import javax.inject.Singleton
 
 @Module(
-    includes = [
-        SettingsDataStoreModule::class
-    ]
+    includes = [SettingsDataStoreModule::class]
 )
 abstract class SettingsModule {
 

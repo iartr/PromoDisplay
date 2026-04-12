@@ -1,6 +1,7 @@
 package ru.offerfactory.promodisplay.network.domain.error
 
 sealed class NetworkError(open val throwable: Throwable) {
+
     data class NoInternetError(override val throwable: Throwable) : NetworkError(throwable)
 
     data class TimeoutError(override val throwable: Throwable) : NetworkError(throwable)

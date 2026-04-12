@@ -11,6 +11,7 @@ import ru.offerfactory.promodisplay.ad.source.impl.util.AdConstants
 import ru.offerfactory.promodisplay.logger.AppLogger
 import java.io.File
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.min
@@ -55,7 +56,7 @@ class AdFileDownloader @Inject constructor(
         }
     }
 
-    private suspend fun resolveStorageUrl(apiMediaUrl: String): Result<String> = withContext(Dispatchers.IO) {
+    private suspend fun resolveStorageUrl(apiMediaUrl: String): Result<String> {
         var lastError: Exception? = null
 
         for (attempt in 1..AdConstants.RESOLVE_MAX_ATTEMPTS) {
@@ -68,39 +69,46 @@ class AdFileDownloader @Inject constructor(
             appLogger.logEvent("AdFileDownloader: resolve api-media url=$apiMediaUrl attempt=$attempt")
 
             try {
-                okHttpClient.newCall(request).execute().use { response ->
-                    val code = response.code
-                    val contentType = response.header("Content-Type").orEmpty()
+                val result = withContext(Dispatchers.IO) {
+                    okHttpClient.newCall(request).execute().use { response ->
+                        val code = response.code
+                        val contentType = response.header("Content-Type").orEmpty()
 
-                    appLogger.logEvent(
-                        "AdFileDownloader: resolve response code=$code contentType=$contentType url=$apiMediaUrl"
-                    )
+                        appLogger.logEvent(
+                            "AdFileDownloader: resolve response code=$code contentType=$contentType url=$apiMediaUrl"
+                        )
 
-                    if (!response.isSuccessful) {
-                        val msg = "HTTP $code for $apiMediaUrl"
-                        appLogger.logError(Throwable(msg))
-                        lastError = Exception(msg)
-                    } else {
-                        val body = response.body
-                        if (body == null) {
-                            val msg = "Empty body for $apiMediaUrl"
+                        if (!response.isSuccessful) {
+                            val msg = "HTTP $code for $apiMediaUrl"
                             appLogger.logError(Throwable(msg))
-                            lastError = Exception(msg)
+                            Result.failure(Exception(msg))
                         } else {
-                            val jsonText = body.string()
-                            val storageUrl = extractFirstHttpUrlFromJson(jsonText)
+                            val body = response.body
+                            if (body == null) {
+                                val msg = "Empty body for $apiMediaUrl"
+                                appLogger.logError(Throwable(msg))
+                                Result.failure(Exception(msg))
+                            } else {
+                                val jsonText = body.string()
+                                val storageUrl = extractFirstHttpUrlFromJson(jsonText)
 
-                            if (!storageUrl.isNullOrBlank()) {
-                                return@withContext Result.success(storageUrl)
+                                if (!storageUrl.isNullOrBlank()) {
+                                    Result.success(storageUrl)
+                                } else {
+                                    val snippet = jsonText.take(JSON_SNIPPET_MAX_CHARS)
+                                    val msg =
+                                        "api-media response doesn't contain storage url. bodySnippet=$snippet"
+                                    appLogger.logError(Throwable(msg))
+                                    Result.failure(Exception(msg))
+                                }
                             }
-
-                            val snippet = jsonText.take(JSON_SNIPPET_MAX_CHARS)
-                            val msg = "api-media response doesn't contain storage url. bodySnippet=$snippet"
-                            appLogger.logError(Throwable(msg))
-                            lastError = Exception(msg)
                         }
                     }
                 }
+
+                if (result.isSuccess) return result
+                lastError = result.exceptionOrNull() as? Exception ?: Exception("Unknown error")
+
             } catch (e: Exception) {
                 appLogger.logError(
                     Throwable("Resolve storage url failed for $apiMediaUrl attempt=$attempt: ${e.message}")
@@ -117,7 +125,7 @@ class AdFileDownloader @Inject constructor(
             }
         }
 
-        Result.failure(lastError ?: Exception("Failed to resolve storage url"))
+        return Result.failure(lastError ?: Exception("Failed to resolve storage url"))
     }
 
     private suspend fun downloadByHttpRange(
@@ -142,12 +150,10 @@ class AdFileDownloader @Inject constructor(
             file.delete()
         }
 
-        var downloadedBytes = if (file.exists()) file.length() else 0L
-        onProgress(downloadedBytes, expectedSize)
+        onProgress(file.length(), expectedSize)
 
-        while (downloadedBytes < expectedSize) {
-            val currentSize = if (file.exists()) file.length() else 0L
-            val rangeStart = currentSize
+        while (file.length() < expectedSize) {
+            val rangeStart = file.length()
             val rangeEnd = min(
                 rangeStart + AdConstants.RANGE_CHUNK_SIZE_BYTES - 1L,
                 expectedSize - 1L
@@ -157,7 +163,7 @@ class AdFileDownloader @Inject constructor(
             var lastError: Exception? = null
 
             for (attempt in 1..AdConstants.RANGE_REQUEST_MAX_ATTEMPTS) {
-                val fileSizeBeforeRequest = if (file.exists()) file.length() else 0L
+                val fileSizeBeforeRequest = file.length()
 
                 val request = Request.Builder()
                     .url(url)
@@ -185,95 +191,93 @@ class AdFileDownloader @Inject constructor(
                                     "acceptRanges=$acceptRanges url=$url"
                         )
 
-                        if (code == AdConstants.HTTP_RANGE_NOT_SATISFIABLE) {
-                            val localSize = if (file.exists()) file.length() else 0L
-                            if (localSize == expectedSize) {
-                                appLogger.logEvent(
-                                    "AdFileDownloader: received 416, but local partial size already equals expected size. " +
-                                            "Treating as complete candidate for validation. file=${file.name}"
-                                )
-                                return@withContext Result.success(Unit)
+                        when (code) {
+                            AdConstants.HTTP_RANGE_NOT_SATISFIABLE -> {
+                                val localSize = file.length()
+                                val msg =
+                                    "HTTP 416 for $url with currentSize=$localSize expectedSize=$expectedSize"
+                                appLogger.logError(Throwable(msg))
+                                return@withContext Result.failure(Exception(msg))
                             }
 
-                            val msg = "HTTP 416 for $url with currentSize=$localSize expectedSize=$expectedSize"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
+                            !in RETRYABLE_HTTP_CODES -> {
+                                val msg =
+                                    "Non-retryable HTTP $code for range download url=$url attempt=$attempt"
+                                appLogger.logError(Throwable(msg))
+                                lastError = Exception(msg)
+                                // не делаем return — даём retry-циклу решить
+                            }
 
-                        if (code != AdConstants.HTTP_PARTIAL_CONTENT) {
-                            val msg = "Expected HTTP 206 for range download, but got $code for $url"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
-
-                        val body = response.body
-                        if (body == null) {
-                            val msg = "Empty body for $url"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
-
-                        val contentRangeInfo = parseContentRange(contentRange)
-                        if (contentRangeInfo == null) {
-                            val msg = "Invalid Content-Range for $url: '$contentRange'"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
-
-                        if (contentRangeInfo.start != fileSizeBeforeRequest) {
-                            val msg =
-                                "Unexpected Content-Range start for $url: expected=$fileSizeBeforeRequest actual=${contentRangeInfo.start}"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
-
-                        if (contentRangeInfo.total != expectedSize) {
-                            val msg =
-                                "Unexpected Content-Range total for $url: expected=$expectedSize actual=${contentRangeInfo.total}"
-                            appLogger.logError(Throwable(msg))
-                            return@withContext Result.failure(Exception(msg))
-                        }
-
-                        val expectedBytesThisRequest =
-                            contentRangeInfo.end - contentRangeInfo.start + 1L
-
-                        var bytesWrittenThisRequest = 0L
-
-                        FileOutputStream(file, true).use { output ->
-                            body.byteStream().use { input ->
-                                val buffer = ByteArray(AdConstants.BUFFER_SIZE_BYTES)
-
-                                while (true) {
-                                    val read = input.read(buffer)
-                                    if (read == -1) break
-
-                                    output.write(buffer, 0, read)
-                                    bytesWrittenThisRequest += read
-                                    downloadedBytes += read
-                                    onProgress(downloadedBytes, expectedSize)
+                            AdConstants.HTTP_PARTIAL_CONTENT -> {
+                                val body = response.body
+                                if (body == null) {
+                                    val msg = "Empty body for $url"
+                                    appLogger.logError(Throwable(msg))
+                                    lastError = Exception(msg)
+                                    return@use
                                 }
+
+                                val contentRangeInfo = parseContentRange(contentRange)
+                                if (contentRangeInfo == null) {
+                                    val msg = "Invalid Content-Range for $url: '$contentRange'"
+                                    appLogger.logError(Throwable(msg))
+                                    return@withContext Result.failure(Exception(msg))
+                                }
+
+                                if (contentRangeInfo.start != fileSizeBeforeRequest) {
+                                    val msg =
+                                        "Unexpected Content-Range start for $url: " +
+                                                "expected=$fileSizeBeforeRequest actual=${contentRangeInfo.start}"
+                                    appLogger.logError(Throwable(msg))
+                                    return@withContext Result.failure(Exception(msg))
+                                }
+
+                                if (contentRangeInfo.total != expectedSize) {
+                                    val msg =
+                                        "Unexpected Content-Range total for $url: " +
+                                                "expected=$expectedSize actual=${contentRangeInfo.total}"
+                                    appLogger.logError(Throwable(msg))
+                                    return@withContext Result.failure(Exception(msg))
+                                }
+
+                                val expectedBytesThisRequest =
+                                    contentRangeInfo.end - contentRangeInfo.start + 1L
+                                var bytesWrittenThisRequest = 0L
+
+                                RandomAccessFile(file, "rw").use { raf ->
+                                    raf.seek(fileSizeBeforeRequest)
+                                    body.byteStream().use { input ->
+                                        val buffer = ByteArray(AdConstants.BUFFER_SIZE_BYTES)
+                                        while (true) {
+                                            val read = input.read(buffer)
+                                            if (read == -1) break
+                                            raf.write(buffer, 0, read)
+                                            bytesWrittenThisRequest += read
+                                            onProgress(fileSizeBeforeRequest + bytesWrittenThisRequest, expectedSize)
+                                        }
+                                    }
+                                }
+
+                                if (bytesWrittenThisRequest != expectedBytesThisRequest) {
+                                    appLogger.logEvent(
+                                        "AdFileDownloader: range body ended early but partial bytes are saved. " +
+                                                "expectedChunkBytes=$expectedBytesThisRequest " +
+                                                "actualChunkBytes=$bytesWrittenThisRequest " +
+                                                "currentSize=${file.length()}"
+                                    )
+                                }
+
+                                chunkCompleted = true
                             }
                         }
-
-                        if (bytesWrittenThisRequest != expectedBytesThisRequest) {
-                            downloadedBytes = if (file.exists()) file.length() else downloadedBytes
-                            onProgress(downloadedBytes, expectedSize)
-                            appLogger.logEvent(
-                                "AdFileDownloader: range body ended early but partial bytes are saved. " +
-                                        "expectedChunkBytes=$expectedBytesThisRequest actualChunkBytes=$bytesWrittenThisRequest currentSize=$downloadedBytes"
-                            )
-                        }
-
-                        chunkCompleted = true
                     }
                 } catch (e: Exception) {
-                    val currentFileSize = if (file.exists()) file.length() else 0L
+                    val currentFileSize = file.length()
                     val advanced = currentFileSize > fileSizeBeforeRequest
                     lastError = e
 
                     if (advanced) {
-                        downloadedBytes = currentFileSize
-                        onProgress(downloadedBytes, expectedSize)
+                        onProgress(currentFileSize, expectedSize)
                         appLogger.logEvent(
                             "AdFileDownloader: range request failed after partial write, continuing from saved bytes. " +
                                     "url=$url currentSize=$currentFileSize error=${e.message}"
@@ -281,9 +285,7 @@ class AdFileDownloader @Inject constructor(
                         chunkCompleted = true
                     } else {
                         appLogger.logError(
-                            Throwable(
-                                "Range request failed for $url attempt=$attempt: ${e.message}"
-                            )
+                            Throwable("Range request failed for $url attempt=$attempt: ${e.message}")
                         )
 
                         if (attempt < AdConstants.RANGE_REQUEST_MAX_ATTEMPTS) {
@@ -296,9 +298,7 @@ class AdFileDownloader @Inject constructor(
                     }
                 }
 
-                if (chunkCompleted) {
-                    break
-                }
+                if (chunkCompleted) break
             }
 
             if (!chunkCompleted) {
@@ -307,12 +307,11 @@ class AdFileDownloader @Inject constructor(
                 )
             }
 
-            downloadedBytes = if (file.exists()) file.length() else downloadedBytes
-            onProgress(downloadedBytes, expectedSize)
+            onProgress(file.length(), expectedSize)
         }
 
         appLogger.logEvent(
-            "AdFileDownloader: range download complete url=$url downloadedBytes=$downloadedBytes fileSize=${file.length()}"
+            "AdFileDownloader: range download complete url=$url fileSize=${file.length()}"
         )
         Result.success(Unit)
     }
@@ -322,69 +321,94 @@ class AdFileDownloader @Inject constructor(
         file: File,
         expectedSize: Long,
         onProgress: (downloadedBytes: Long, totalBytes: Long) -> Unit
-    ): Result<Unit> = withContext(Dispatchers.IO) {
-        file.parentFile?.mkdirs()
-        if (file.exists()) {
-            file.delete()
-        }
+    ): Result<Unit> {
+        var lastError: Exception? = null
 
-        val request = Request.Builder()
-            .url(url)
-            .header("Accept", "*/*")
-            .header("Accept-Encoding", "identity")
-            .build()
+        for (attempt in 1..AdConstants.RESOLVE_MAX_ATTEMPTS) {
+            file.parentFile?.mkdirs()
+            if (file.exists()) file.delete()
 
-        appLogger.logEvent("AdFileDownloader: full download url=$url file=${file.name}")
+            val request = Request.Builder()
+                .url(url)
+                .header("Accept", "*/*")
+                .header("Accept-Encoding", "identity")
+                .build()
 
-        try {
-            okHttpClient.newCall(request).execute().use { response ->
-                val code = response.code
-                val contentType = response.header("Content-Type").orEmpty()
-                val contentLength = response.header("Content-Length").orEmpty()
+            appLogger.logEvent(
+                "AdFileDownloader: full download url=$url file=${file.name} attempt=$attempt"
+            )
 
-                appLogger.logEvent(
-                    "AdFileDownloader: full response code=$code contentType=$contentType contentLength=$contentLength url=$url"
-                )
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    okHttpClient.newCall(request).execute().use { response ->
+                        val code = response.code
+                        val contentType = response.header("Content-Type").orEmpty()
+                        val contentLength = response.header("Content-Length").orEmpty()
 
-                if (code != AdConstants.HTTP_OK) {
-                    val msg = "Expected HTTP 200 for full download, but got $code for $url"
-                    appLogger.logError(Throwable(msg))
-                    return@withContext Result.failure(Exception(msg))
-                }
+                        appLogger.logEvent(
+                            "AdFileDownloader: full response code=$code contentType=$contentType " +
+                                    "contentLength=$contentLength url=$url"
+                        )
 
-                val body = response.body
-                if (body == null) {
-                    val msg = "Empty body for $url"
-                    appLogger.logError(Throwable(msg))
-                    return@withContext Result.failure(Exception(msg))
-                }
-
-                val totalBytes = if (expectedSize > 0L) expectedSize else body.contentLength()
-                var downloadedBytes = 0L
-
-                FileOutputStream(file, false).use { output ->
-                    body.byteStream().use { input ->
-                        val buffer = ByteArray(AdConstants.BUFFER_SIZE_BYTES)
-                        while (true) {
-                            val read = input.read(buffer)
-                            if (read == -1) break
-
-                            output.write(buffer, 0, read)
-                            downloadedBytes += read
-                            onProgress(downloadedBytes, totalBytes)
+                        if (code != AdConstants.HTTP_OK) {
+                            val msg =
+                                "Expected HTTP 200 for full download, but got $code for $url"
+                            appLogger.logError(Throwable(msg))
+                            return@withContext Result.failure<Unit>(Exception(msg))
                         }
+
+                        val body = response.body
+                        if (body == null) {
+                            val msg = "Empty body for $url"
+                            appLogger.logError(Throwable(msg))
+                            return@withContext Result.failure<Unit>(Exception(msg))
+                        }
+
+                        val totalBytes =
+                            if (expectedSize > 0L) expectedSize else body.contentLength()
+                        var downloadedBytes = 0L
+
+                        FileOutputStream(file, false).use { output ->
+                            body.byteStream().use { input ->
+                                val buffer = ByteArray(AdConstants.BUFFER_SIZE_BYTES)
+                                while (true) {
+                                    val read = input.read(buffer)
+                                    if (read == -1) break
+                                    output.write(buffer, 0, read)
+                                    downloadedBytes += read
+                                    onProgress(downloadedBytes, totalBytes)
+                                }
+                            }
+                        }
+
+                        appLogger.logEvent(
+                            "AdFileDownloader: full download complete url=$url " +
+                                    "downloadedBytes=$downloadedBytes fileSize=${file.length()}"
+                        )
+                        Result.success(Unit)
                     }
                 }
 
-                appLogger.logEvent(
-                    "AdFileDownloader: full download complete url=$url downloadedBytes=$downloadedBytes fileSize=${file.length()}"
+                if (result.isSuccess) return result
+                lastError = result.exceptionOrNull() as? Exception ?: Exception("Unknown error")
+
+            } catch (e: Exception) {
+                appLogger.logError(
+                    Throwable("Full download failed for $url attempt=$attempt: ${e.message}")
                 )
-                Result.success(Unit)
+                lastError = e
             }
-        } catch (e: Exception) {
-            appLogger.logError(Throwable("Full download failed for $url: ${e.message}"))
-            Result.failure(e)
+
+            if (attempt < AdConstants.RESOLVE_MAX_ATTEMPTS) {
+                val delayMs = AdConstants.RETRY_BASE_DELAY_MS * attempt
+                appLogger.logEvent(
+                    "AdFileDownloader: full download retry url=$url nextAttempt=${attempt + 1} delayMs=$delayMs"
+                )
+                delay(delayMs)
+            }
         }
+
+        return Result.failure(lastError ?: Exception("Full download failed for $url"))
     }
 
     private fun extractFirstHttpUrlFromJson(jsonText: String): String? = runCatching {
@@ -401,16 +425,10 @@ class AdFileDownloader @Inject constructor(
     private fun findFirstHttpUrl(value: Any?): String? {
         return when (value) {
             is JSONObject -> {
-                val directUrl = value.optString("url")
-                if (directUrl.startsWith("http://") || directUrl.startsWith("https://")) {
-                    return directUrl
-                }
-
                 val keys = value.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
-                    val child = value.opt(key)
-                    val found = findFirstHttpUrl(child)
+                    val found = findFirstHttpUrl(value.opt(key))
                     if (!found.isNullOrBlank()) return found
                 }
                 null
@@ -457,5 +475,10 @@ class AdFileDownloader @Inject constructor(
     private companion object {
         private const val JSON_SNIPPET_MAX_CHARS = 300
         private val CONTENT_RANGE_REGEX = Regex("bytes (\\d+)-(\\d+)/(\\d+)")
+
+        private val RETRYABLE_HTTP_CODES = setOf(
+            AdConstants.HTTP_PARTIAL_CONTENT,
+            500, 502, 503, 504
+        )
     }
 }

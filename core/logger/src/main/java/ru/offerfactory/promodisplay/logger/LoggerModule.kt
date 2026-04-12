@@ -12,11 +12,11 @@ object LoggerModule {
 
     @Provides
     @Singleton
-    fun provideLogger(
+    fun provideAppLogger(
         @IsDebugLogging isDebug: Boolean,
         application: Application
-    ) : AppLogger{
-        if(isDebug){
+    ): AppLogger {
+        if (isDebug) {
             Timber.plant(Timber.DebugTree())
         } else {
             Timber.plant(FileLoggingTree(context = application))

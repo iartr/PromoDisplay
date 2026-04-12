@@ -9,6 +9,8 @@ import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
 
+private const val PREFERENCES_DATA_STORE_FILE_NAME = "promo_display_settings.preferences_pb"
+
 @Module
 object SettingsDataStoreModule {
 
@@ -16,7 +18,9 @@ object SettingsDataStoreModule {
     @Singleton
     fun providePreferencesDataStore(context: Context): DataStore<Preferences> {
         return PreferenceDataStoreFactory.create(
-            produceFile = { context.preferencesDataStoreFile("promo_display_settings.preferences_pb") }
+            produceFile = {
+                context.preferencesDataStoreFile(PREFERENCES_DATA_STORE_FILE_NAME)
+            }
         )
     }
 }

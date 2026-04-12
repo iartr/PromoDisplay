@@ -13,7 +13,6 @@ object PlayerModule {
     @Provides
     @Singleton
     fun providePlayerApi(context: Context): PlayerApi {
-        // Важно: используем applicationContext внутри фабрики
         return PlayerApiFactory.create(context)
     }
 }

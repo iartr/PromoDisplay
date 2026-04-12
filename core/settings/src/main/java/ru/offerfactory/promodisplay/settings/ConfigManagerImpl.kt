@@ -11,12 +11,14 @@ import kotlinx.serialization.encodeToString
 import ru.offerfactory.promodisplay.settings.domain.model.ConfigEntity
 import javax.inject.Inject
 
+private const val PREFERENCES_KEY = "config_json"
+
 class ConfigManagerImpl @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) : ConfigManager {
 
     companion object {
-        private val KEY_CONFIG = stringPreferencesKey("config_json")
+        private val KEY_CONFIG = stringPreferencesKey(PREFERENCES_KEY)
         private val json = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
