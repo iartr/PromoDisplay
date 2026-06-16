@@ -43,11 +43,10 @@ class SyncAdvertisementWorker(
     }
 
     private fun scheduleNextSync(delaySeconds: Long) {
-
         val cooldown = max(delaySeconds, WORKER_MIN_DELAY_SECONDS)
 
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
             .build()
 
         val nextWork =

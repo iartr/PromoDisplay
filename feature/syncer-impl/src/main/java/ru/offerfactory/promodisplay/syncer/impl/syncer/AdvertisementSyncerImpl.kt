@@ -19,7 +19,7 @@ class AdvertisementSyncerImpl @Inject constructor(
         val workManager = WorkManager.getInstance(context)
 
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
             .build()
 
         val configFetchOnStartup = OneTimeWorkRequestBuilder<SyncAdvertisementWorker>()

@@ -82,7 +82,7 @@ class NetworkModule {
             .sslSocketFactory(sslContext.socketFactory, customTrustManager)
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.HEADERS
+                    level = HttpLoggingInterceptor.Level.BASIC
                 }
             )
             .build()
